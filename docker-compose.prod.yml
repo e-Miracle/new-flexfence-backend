@@ -1,9 +1,43 @@
+# Production compose — run from the server deploy directory (e.g. /opt/flexfence/backend).
+# CI copies source here; the server builds the image locally with `docker compose build`.
+# Place a .env file in this directory on the host (not shipped by CI).
+# Includes a dedicated MySQL container with persistent storage.
+
 services:
+  mysql:
+    image: mysql:8.4
+    container_name: flexfence-backend-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME:-flexfence}
+      MYSQL_USER: ${DB_USER:-flexfence}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
   backend:
-    image: ${FLEXFENCE_IMAGE:-ghcr.io/flexfence/flexfence-backend:latest}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: flexfence-backend:prod
     container_name: flexfence-backend
     restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
     env_file:
       - .env
+    environment:
+      DB_HOST: mysql
     ports:
       - "127.0.0.1:3002:80"
+
+volumes:
+  mysql_data:
