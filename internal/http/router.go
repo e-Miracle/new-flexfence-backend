@@ -265,8 +265,12 @@ func classifyEventRoute(r *http.Request) eventRouteKind {
 }
 
 func healthHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
+	if r.Method != http.MethodGet && r.Method != http.MethodHead {
 		writeAPIError(w, http.StatusMethodNotAllowed, "method_not_allowed", "Method not allowed")
+		return
+	}
+	if r.Method == http.MethodHead {
+		w.WriteHeader(http.StatusOK)
 		return
 	}
 	writeJSON(w, http.StatusOK, HealthResponse{Status: "ok"})
