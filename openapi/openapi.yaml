@@ -1,0 +1,1531 @@
+openapi: 3.0.3
+info:
+  title: Flexfence Backend API
+  version: 0.1.0
+  description: |
+    MVP attendance API for Flexfence.
+servers:
+  - url: http://localhost:8080
+tags:
+  - name: Health
+  - name: Auth
+  - name: Events
+  - name: Attendance
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Health check
+      operationId: getHealth
+      responses:
+        "200":
+          description: Service healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+  /v1/auth/business/login:
+    post:
+      tags: [Auth]
+      summary: Dashboard business login (sends email OTP)
+      operationId: businessLogin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BusinessLoginRequest"
+      responses:
+        "200":
+          description: OTP challenge created; verification email sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BusinessLoginOTPChallengeResponse"
+        default:
+          $ref: "#/components/responses/APIError"
+  /v1/auth/business/register:
+    post:
+      tags: [Auth]
+      summary: Register business owner account (sends email OTP)
+      operationId: businessRegister
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BusinessRegisterRequest"
+      responses:
+        "201":
+          description: Account created; OTP challenge created and emailed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BusinessLoginOTPChallengeResponse"
+        default:
+          $ref: "#/components/responses/APIError"
+  /v1/auth/business/otp/verify:
+    post:
+      tags: [Auth]
+      summary: Verify dashboard login OTP and issue JWT
+      operationId: businessOTPVerify
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BusinessOTPVerifyRequest"
+      responses:
+        "200":
+          description: Authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BusinessLoginResponse"
+        default:
+          $ref: "#/components/responses/APIError"
+  /v1/auth/business/otp/resend:
+    post:
+      tags: [Auth]
+      summary: Resend dashboard login OTP email
+      operationId: businessOTPResend
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BusinessOTPResendRequest"
+      responses:
+        "200":
+          description: New OTP sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BusinessLoginOTPChallengeResponse"
+        default:
+          $ref: "#/components/responses/APIError"
+  /v1/auth/business/oauth/google:
+    post:
+      tags: [Auth]
+      summary: Dashboard Google OAuth login
+      operationId: businessGoogleOAuth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GoogleOAuthRequest"
+      responses:
+        "200":
+          description: Authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BusinessLoginResponse"
+        default:
+          $ref: "#/components/responses/APIError"
+  /v1/auth/user/register:
+    post:
+      tags: [Auth]
+      summary: Mobile attendee registration
+      operationId: userRegister
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserRegisterRequest"
+      responses:
+        "201":
+          description: Registered and authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserLoginResponse"
+        default:
+          $ref: "#/components/responses/APIError"
+  /v1/auth/user/login:
+    post:
+      tags: [Auth]
+      summary: Mobile attendee email and password login
+      operationId: userLogin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserLoginRequest"
+      responses:
+        "200":
+          description: Authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserLoginResponse"
+        default:
+          $ref: "#/components/responses/APIError"
+  /v1/auth/user/oauth/google:
+    post:
+      tags: [Auth]
+      summary: Mobile Google OAuth login
+      operationId: userGoogleOAuth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GoogleOAuthRequest"
+      responses:
+        "200":
+          description: Authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserLoginResponse"
+        default:
+          $ref: "#/components/responses/APIError"
+  /v1/me/event-joins:
+    get:
+      tags: [Events]
+      summary: List events the signed-in attendee has joined
+      operationId: listMyEventJoins
+      security:
+        - UserBearer: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: q
+          in: query
+          description: Search event title or description
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: join_source
+          in: query
+          schema:
+            type: string
+        - name: start_from
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: start_to
+          in: query
+          schema:
+            type: string
+            format: date-time
+      responses:
+        "200":
+          description: Join history
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListUserEventJoinsResponse"
+        default:
+          $ref: "#/components/responses/APIError"
+  /v1/me/subscribed-events:
+    get:
+      tags: [Events]
+      summary: List joined upcoming events with geofence geometry for mobile tracking
+      operationId: listMySubscribedEvents
+      security:
+        - UserBearer: []
+      responses:
+        "200":
+          description: Subscribed events with circle fences
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListSubscribedGeofenceEventsResponse"
+        default:
+          $ref: "#/components/responses/APIError"
+  /v1/me/activity-history:
+    get:
+      tags: [Events]
+      summary: List clock-in/out history for the signed-in attendee
+      operationId: listMyActivityHistory
+      security:
+        - UserBearer: []
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [date, week, month, custom]
+            default: date
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date-time
+      responses:
+        "200":
+          description: Activity history sessions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListUserActivityHistoryResponse"
+        default:
+          $ref: "#/components/responses/APIError"
+  /v1/me/activity-history/clock-in:
+    post:
+      tags: [Events]
+      summary: Record a clock-in session
+      operationId: recordClockIn
+      security:
+        - UserBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecordClockInRequest"
+      responses:
+        "201":
+          description: Created session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserActivitySession"
+        default:
+          $ref: "#/components/responses/APIError"
+  /v1/me/activity-history/clock-out:
+    post:
+      tags: [Events]
+      summary: Record a clock-out for an open session
+      operationId: recordClockOut
+      security:
+        - UserBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecordClockOutRequest"
+      responses:
+        "200":
+          description: Updated session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserActivitySession"
+        default:
+          $ref: "#/components/responses/APIError"
+  /v1/me/event-joins/{joinId}:
+    delete:
+      tags: [Events]
+      summary: Remove a linked event for the signed-in attendee
+      operationId: deleteMyEventJoin
+      security:
+        - UserBearer: []
+      parameters:
+        - name: joinId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Deleted
+        default:
+          $ref: "#/components/responses/APIError"
+  /v1/me:
+    delete:
+      tags: [Auth]
+      summary: Permanently delete the signed-in attendee account
+      operationId: deleteMyAccount
+      security:
+        - UserBearer: []
+      responses:
+        "204":
+          description: Account deleted
+        default:
+          $ref: "#/components/responses/APIError"
+  /v1/me/change-password:
+    post:
+      tags: [Auth]
+      summary: Change password for the signed-in attendee
+      operationId: changeMyPassword
+      security:
+        - UserBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChangePasswordRequest"
+      responses:
+        "204":
+          description: Password updated
+        default:
+          $ref: "#/components/responses/APIError"
+  /v1/consent-field-recommendations:
+    get:
+      tags: [Events]
+      summary: List frequently used custom consent fields for the organization
+      operationId: listConsentFieldRecommendations
+      security:
+        - BusinessBearer: []
+      responses:
+        "200":
+          description: Recommendations ordered by use count
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListConsentFieldRecommendationsResponse"
+        default:
+          $ref: "#/components/responses/APIError"
+  /v1/events:
+    get:
+      tags: [Events]
+      summary: List events
+      operationId: listEvents
+      security:
+        - BusinessBearer: []
+      responses:
+        "200":
+          description: Event list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListEventsResponse"
+        default:
+          $ref: "#/components/responses/APIError"
+    post:
+      tags: [Events]
+      summary: Create event
+      operationId: createEvent
+      security:
+        - BusinessBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateEventRequest"
+      responses:
+        "201":
+          description: Event created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+        default:
+          $ref: "#/components/responses/APIError"
+  /v1/events/{eventId}:
+    get:
+      tags: [Events]
+      summary: Get event
+      operationId: getEvent
+      security:
+        - BusinessBearer: []
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+      responses:
+        "200":
+          description: Event details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+        default:
+          $ref: "#/components/responses/APIError"
+  /v1/events/{eventId}/fences:
+    get:
+      tags: [Events]
+      summary: List fences for event
+      operationId: listFences
+      security:
+        - BusinessBearer: []
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+      responses:
+        "200":
+          description: Fence list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListFencesResponse"
+        default:
+          $ref: "#/components/responses/APIError"
+    post:
+      tags: [Events]
+      summary: Create fence for event
+      operationId: createFence
+      security:
+        - BusinessBearer: []
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateFenceRequest"
+      responses:
+        "201":
+          description: Fence created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Fence"
+        default:
+          $ref: "#/components/responses/APIError"
+  /v1/events/{eventId}/fences/{fenceId}:
+    delete:
+      tags: [Events]
+      summary: Delete a fence from an event
+      operationId: deleteFence
+      security:
+        - BusinessBearer: []
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+        - $ref: "#/components/parameters/FenceId"
+      responses:
+        "204":
+          description: Fence deleted
+        "409":
+          description: Event is live; fence deletion is blocked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/APIError"
+        default:
+          $ref: "#/components/responses/APIError"
+  /v1/events/{eventId}/share:
+    get:
+      tags: [Events]
+      summary: Get join links and QR payload for event
+      operationId: getEventShare
+      security:
+        - BusinessBearer: []
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+      responses:
+        "200":
+          description: Share materials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventShare"
+        default:
+          $ref: "#/components/responses/APIError"
+  /v1/events/{eventId}/share/regenerate:
+    post:
+      tags: [Events]
+      summary: Regenerate event QR token and join links
+      operationId: regenerateEventShare
+      security:
+        - BusinessBearer: []
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+      responses:
+        "200":
+          description: Updated share materials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventShare"
+        default:
+          $ref: "#/components/responses/APIError"
+  /v1/events/{eventId}/consent-template:
+    get:
+      tags: [Events]
+      summary: Get consent template for event
+      operationId: getConsentTemplate
+      security:
+        - BusinessBearer: []
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+      responses:
+        "200":
+          description: Consent template
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConsentTemplate"
+        default:
+          $ref: "#/components/responses/APIError"
+    put:
+      tags: [Events]
+      summary: Save consent template for event
+      operationId: saveConsentTemplate
+      security:
+        - BusinessBearer: []
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SaveConsentTemplateRequest"
+      responses:
+        "200":
+          description: Saved consent template
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConsentTemplate"
+        default:
+          $ref: "#/components/responses/APIError"
+  /v1/events/{eventId}/attendance:
+    get:
+      tags: [Attendance]
+      summary: List attendance records for event
+      operationId: listAttendance
+      security:
+        - BusinessBearer: []
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+      responses:
+        "200":
+          description: Attendance list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListAttendanceResponse"
+        default:
+          $ref: "#/components/responses/APIError"
+  /v1/events/{eventId}/analytics:
+    get:
+      tags: [Events]
+      summary: Event-level attendance and join analytics
+      operationId: getEventAnalytics
+      security:
+        - BusinessBearer: []
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+      responses:
+        "200":
+          description: Event analytics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventAnalytics"
+        default:
+          $ref: "#/components/responses/APIError"
+  /v1/events/{eventId}/fences/{fenceId}/analytics:
+    get:
+      tags: [Events]
+      summary: Geofence-level attendance analytics
+      operationId: getFenceAnalytics
+      security:
+        - BusinessBearer: []
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+        - $ref: "#/components/parameters/FenceId"
+      responses:
+        "200":
+          description: Fence analytics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FenceAnalytics"
+        default:
+          $ref: "#/components/responses/APIError"
+  /v1/events/{eventId}/join-by-qr:
+    post:
+      tags: [Attendance]
+      summary: Join event via QR
+      operationId: joinByQr
+      security:
+        - {}
+        - UserBearer: []
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JoinByQRRequest"
+      responses:
+        "201":
+          description: Joined event
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventJoin"
+        default:
+          $ref: "#/components/responses/APIError"
+  /v1/events/{eventId}/attendance/mark-present:
+    post:
+      tags: [Attendance]
+      summary: Mark attendee present
+      operationId: markPresent
+      security:
+        - UserBearer: []
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MarkPresentRequest"
+      responses:
+        "201":
+          description: Attendance recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AttendanceRecord"
+        default:
+          $ref: "#/components/responses/APIError"
+
+components:
+  securitySchemes:
+    BusinessBearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Dashboard business user token
+    UserBearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Mobile end-user token
+
+  parameters:
+    EventId:
+      name: eventId
+      in: path
+      required: true
+      schema:
+        type: string
+    FenceId:
+      name: fenceId
+      in: path
+      required: true
+      schema:
+        type: string
+
+  responses:
+    APIError:
+      description: Standard API error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/APIError"
+
+  schemas:
+    APIError:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+
+    HealthResponse:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          example: ok
+
+    BusinessLoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+
+    AuthTokenResponse:
+      type: object
+      required: [access_token, token_type, expires_at]
+      properties:
+        access_token:
+          type: string
+        token_type:
+          type: string
+          example: Bearer
+        expires_at:
+          type: string
+          format: date-time
+
+    BusinessUserProfile:
+      type: object
+      required: [id, organization_id, email, role]
+      properties:
+        id:
+          type: string
+        organization_id:
+          type: string
+        email:
+          type: string
+        first_name:
+          type: string
+        last_name:
+          type: string
+        role:
+          type: string
+
+    BusinessLoginResponse:
+      allOf:
+        - $ref: "#/components/schemas/AuthTokenResponse"
+        - type: object
+          required: [user]
+          properties:
+            user:
+              $ref: "#/components/schemas/BusinessUserProfile"
+
+    BusinessLoginOTPChallengeResponse:
+      type: object
+      required: [otp_required, challenge_id, masked_email, expires_at]
+      properties:
+        otp_required:
+          type: boolean
+        challenge_id:
+          type: string
+        masked_email:
+          type: string
+        expires_at:
+          type: string
+          format: date-time
+
+    BusinessRegisterRequest:
+      type: object
+      required: [organization_name, first_name, email, password]
+      properties:
+        organization_name:
+          type: string
+        first_name:
+          type: string
+        last_name:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+
+    BusinessOTPVerifyRequest:
+      type: object
+      required: [challenge_id, code]
+      properties:
+        challenge_id:
+          type: string
+        code:
+          type: string
+          example: "1234"
+
+    BusinessOTPResendRequest:
+      type: object
+      required: [challenge_id]
+      properties:
+        challenge_id:
+          type: string
+
+    GoogleOAuthRequest:
+      type: object
+      properties:
+        id_token:
+          type: string
+        google_sub:
+          type: string
+        email:
+          type: string
+        first_name:
+          type: string
+        last_name:
+          type: string
+
+    UserProfile:
+      type: object
+      required: [id, email]
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        first_name:
+          type: string
+        last_name:
+          type: string
+
+    UserLoginResponse:
+      allOf:
+        - $ref: "#/components/schemas/AuthTokenResponse"
+        - type: object
+          required: [user]
+          properties:
+            user:
+              $ref: "#/components/schemas/UserProfile"
+
+    UserRegisterRequest:
+      type: object
+      required: [email, password, first_name]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+        first_name:
+          type: string
+        last_name:
+          type: string
+        phone:
+          type: string
+
+    UserLoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+
+    ChangePasswordRequest:
+      type: object
+      required: [current_password, new_password]
+      properties:
+        current_password:
+          type: string
+          format: password
+        new_password:
+          type: string
+          format: password
+
+    UserEventJoin:
+      type: object
+      required: [id, event_id, event_title, join_source, joined_at]
+      properties:
+        id:
+          type: string
+        event_id:
+          type: string
+        event_title:
+          type: string
+        event_description:
+          type: string
+        event_start_at:
+          type: string
+          format: date-time
+        event_end_at:
+          type: string
+          format: date-time
+        event_status:
+          type: string
+        join_source:
+          type: string
+        joined_at:
+          type: string
+          format: date-time
+
+    ListUserEventJoinsResponse:
+      type: object
+      required: [joins, total, page, limit, has_more]
+      properties:
+        joins:
+          type: array
+          items:
+            $ref: "#/components/schemas/UserEventJoin"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+        has_more:
+          type: boolean
+
+    SubscribedGeofenceEvent:
+      type: object
+      required: [id, event_id, event_title, join_source, joined_at, fences]
+      properties:
+        id:
+          type: string
+        event_id:
+          type: string
+        event_title:
+          type: string
+        event_description:
+          type: string
+        event_start_at:
+          type: string
+          format: date-time
+        event_end_at:
+          type: string
+          format: date-time
+        event_status:
+          type: string
+        join_source:
+          type: string
+        joined_at:
+          type: string
+          format: date-time
+        fences:
+          type: array
+          items:
+            $ref: "#/components/schemas/Fence"
+
+    ListSubscribedGeofenceEventsResponse:
+      type: object
+      required: [events, alerts, refreshed_at]
+      properties:
+        events:
+          type: array
+          items:
+            $ref: "#/components/schemas/SubscribedGeofenceEvent"
+        alerts:
+          type: array
+          items:
+            $ref: "#/components/schemas/GeofenceAlert"
+        refreshed_at:
+          type: string
+          format: date-time
+
+    GeofenceAlert:
+      type: object
+      required: [id, type, event_id, event_title, message, created_at]
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [event_live, fence_removed]
+        event_id:
+          type: string
+        event_title:
+          type: string
+        fence_id:
+          type: string
+        fence_name:
+          type: string
+        message:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    UserActivitySession:
+      type: object
+      required: [id, user_id, fence_name, clock_in_at, verified, source, created_at]
+      properties:
+        id:
+          type: string
+        user_id:
+          type: string
+        event_id:
+          type: string
+        event_title:
+          type: string
+        fence_id:
+          type: string
+        fence_name:
+          type: string
+        clock_in_at:
+          type: string
+          format: date-time
+        clock_out_at:
+          type: string
+          format: date-time
+        verified:
+          type: boolean
+        source:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    ListUserActivityHistoryResponse:
+      type: object
+      required: [sessions, retention_days]
+      properties:
+        sessions:
+          type: array
+          items:
+            $ref: "#/components/schemas/UserActivitySession"
+        retention_days:
+          type: integer
+
+    RecordClockInRequest:
+      type: object
+      properties:
+        event_id:
+          type: string
+        event_title:
+          type: string
+        fence_id:
+          type: string
+        fence_name:
+          type: string
+        source:
+          type: string
+        lat:
+          type: number
+        lng:
+          type: number
+
+    RecordClockOutRequest:
+      type: object
+      properties:
+        session_id:
+          type: string
+        event_id:
+          type: string
+        fence_id:
+          type: string
+
+    CreateEventRequest:
+      type: object
+      required: [title, start_at, end_at]
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        start_at:
+          type: string
+          format: date-time
+        end_at:
+          type: string
+          format: date-time
+
+    ListEventsResponse:
+      type: object
+      required: [events]
+      properties:
+        events:
+          type: array
+          items:
+            $ref: "#/components/schemas/Event"
+
+    Event:
+      type: object
+      required: [id, organization_id, created_by_id, title, status, created_at]
+      properties:
+        id:
+          type: string
+        organization_id:
+          type: string
+        created_by_id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        start_at:
+          type: string
+          format: date-time
+        end_at:
+          type: string
+          format: date-time
+        status:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    CreateFenceRequest:
+      type: object
+      required: [shape_type]
+      properties:
+        name:
+          type: string
+          description: Optional; auto-generated from event title and schedule when omitted
+        shape_type:
+          type: string
+          enum: [circle, polygon]
+        start_at:
+          type: string
+          format: date-time
+          description: Optional; inherits event start_at when omitted
+        end_at:
+          type: string
+          format: date-time
+          description: Optional; inherits event end_at when omitted
+        center_lat:
+          type: number
+          format: double
+        center_lng:
+          type: number
+          format: double
+        radius_m:
+          type: number
+          format: double
+        polygon_geojson:
+          type: string
+
+    ListFencesResponse:
+      type: object
+      required: [fences]
+      properties:
+        fences:
+          type: array
+          items:
+            $ref: "#/components/schemas/Fence"
+
+    ConsentField:
+      type: object
+      required: [key, label, required]
+      properties:
+        key:
+          type: string
+        label:
+          type: string
+        required:
+          type: boolean
+        is_custom:
+          type: boolean
+          description: True for organization-defined fields stored on the event
+        value_type:
+          type: string
+          enum: [text, email, phone, number, date, boolean]
+          description: Input type shown to attendees (required for custom fields)
+
+    ConsentFieldRecommendation:
+      type: object
+      required: [key, label, value_type, use_count]
+      properties:
+        key:
+          type: string
+        label:
+          type: string
+        value_type:
+          type: string
+        use_count:
+          type: integer
+
+    ListConsentFieldRecommendationsResponse:
+      type: object
+      required: [recommendations]
+      properties:
+        recommendations:
+          type: array
+          items:
+            $ref: "#/components/schemas/ConsentFieldRecommendation"
+
+    TimelinePoint:
+      type: object
+      required: [label, count]
+      properties:
+        label:
+          type: string
+        count:
+          type: integer
+
+    FenceAnalyticsSummary:
+      type: object
+      required: [fence_id, fence_name, total_attendance, unique_attendees, attendance_in_fence]
+      properties:
+        fence_id:
+          type: string
+        fence_name:
+          type: string
+        total_attendance:
+          type: integer
+        unique_attendees:
+          type: integer
+        attendance_in_fence:
+          type: integer
+
+    EventAnalytics:
+      type: object
+      required:
+        - event_id
+        - total_joins
+        - unique_joined_users
+        - total_attendance
+        - unique_attendees
+        - joins_by_source
+        - attendance_by_source
+        - attendance_timeline
+        - fence_summaries
+      properties:
+        event_id:
+          type: string
+        total_joins:
+          type: integer
+        unique_joined_users:
+          type: integer
+        total_attendance:
+          type: integer
+        unique_attendees:
+          type: integer
+        joins_by_source:
+          type: object
+          additionalProperties:
+            type: integer
+        attendance_by_source:
+          type: object
+          additionalProperties:
+            type: integer
+        attendance_timeline:
+          type: array
+          items:
+            $ref: "#/components/schemas/TimelinePoint"
+        fence_summaries:
+          type: array
+          items:
+            $ref: "#/components/schemas/FenceAnalyticsSummary"
+
+    FenceAnalytics:
+      type: object
+      required:
+        - fence_id
+        - fence_name
+        - event_id
+        - total_attendance
+        - unique_attendees
+        - attendance_by_source
+        - attendance_timeline
+        - unattributed_nearby
+      properties:
+        fence_id:
+          type: string
+        fence_name:
+          type: string
+        event_id:
+          type: string
+        total_attendance:
+          type: integer
+        unique_attendees:
+          type: integer
+        attendance_by_source:
+          type: object
+          additionalProperties:
+            type: integer
+        attendance_timeline:
+          type: array
+          items:
+            $ref: "#/components/schemas/TimelinePoint"
+        unattributed_nearby:
+          type: integer
+
+    EventShare:
+      type: object
+      required: [event_id, event_title, qr_token, join_deep_link, qr_code_payload]
+      properties:
+        event_id:
+          type: string
+        event_title:
+          type: string
+        qr_token:
+          type: string
+        join_deep_link:
+          type: string
+        join_web_link:
+          type: string
+        qr_code_payload:
+          type: string
+          description: URL or deep link encoded in the QR image
+
+    ConsentTemplate:
+      type: object
+      required: [event_id, required_fields, track_entry_exit, track_movement]
+      properties:
+        id:
+          type: string
+        event_id:
+          type: string
+        required_fields:
+          type: array
+          items:
+            $ref: "#/components/schemas/ConsentField"
+        track_entry_exit:
+          type: boolean
+        track_movement:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    SaveConsentTemplateRequest:
+      type: object
+      required: [required_fields, track_entry_exit, track_movement]
+      properties:
+        required_fields:
+          type: array
+          items:
+            $ref: "#/components/schemas/ConsentField"
+        track_entry_exit:
+          type: boolean
+        track_movement:
+          type: boolean
+
+    AttendanceWithUser:
+      type: object
+      required: [id, event_id, user_id, status, source, marked_at]
+      properties:
+        id:
+          type: string
+        event_id:
+          type: string
+        user_id:
+          type: string
+        user_email:
+          type: string
+        user_name:
+          type: string
+        status:
+          type: string
+        source:
+          type: string
+        marked_at:
+          type: string
+          format: date-time
+        lat:
+          type: number
+          format: double
+        lng:
+          type: number
+          format: double
+        accuracy_m:
+          type: number
+          format: double
+
+    ListAttendanceResponse:
+      type: object
+      required: [attendance]
+      properties:
+        attendance:
+          type: array
+          items:
+            $ref: "#/components/schemas/AttendanceWithUser"
+
+    Fence:
+      type: object
+      required: [id, event_id, name, shape_type, start_at, end_at, created_at]
+      properties:
+        id:
+          type: string
+        event_id:
+          type: string
+        name:
+          type: string
+        shape_type:
+          type: string
+        start_at:
+          type: string
+          format: date-time
+        end_at:
+          type: string
+          format: date-time
+        center_lat:
+          type: number
+          format: double
+        center_lng:
+          type: number
+          format: double
+        radius_m:
+          type: number
+          format: double
+        polygon_geojson:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    JoinByQRRequest:
+      type: object
+      required: [qr_token]
+      properties:
+        user_id:
+          type: string
+        email:
+          type: string
+          format: email
+        first_name:
+          type: string
+        last_name:
+          type: string
+        qr_token:
+          type: string
+
+    EventJoin:
+      type: object
+      required: [id, event_id, user_id, join_source, joined_at]
+      properties:
+        id:
+          type: string
+        event_id:
+          type: string
+        user_id:
+          type: string
+        join_source:
+          type: string
+        qr_token:
+          type: string
+        joined_at:
+          type: string
+          format: date-time
+
+    MarkPresentRequest:
+      type: object
+      properties:
+        source:
+          type: string
+          example: geofence_prompt
+        lat:
+          type: number
+          format: double
+        lng:
+          type: number
+          format: double
+        accuracy_m:
+          type: number
+          format: double
+
+    AttendanceRecord:
+      type: object
+      required: [id, event_id, user_id, status, source, marked_at]
+      properties:
+        id:
+          type: string
+        event_id:
+          type: string
+        fence_id:
+          type: string
+        user_id:
+          type: string
+        status:
+          type: string
+        source:
+          type: string
+        marked_at:
+          type: string
+          format: date-time
+        lat:
+          type: number
+          format: double
+        lng:
+          type: number
+          format: double
+        accuracy_m:
+          type: number
+          format: double

@@ -1,0 +1,9 @@
+services:
+  backend:
+    image: ${FLEXFENCE_IMAGE:-ghcr.io/flexfence/flexfence-backend:latest}
+    container_name: flexfence-backend
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "127.0.0.1:3002:80"

@@ -1,0 +1,40 @@
+name: Backend CI
+
+on:
+  pull_request:
+    branches:
+      - develop
+      - main
+  push:
+    branches:
+      - develop
+
+jobs:
+  test-and-contract:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Setup Node (OpenAPI validation tool)
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Verify Go code builds
+        run: go test ./...
+
+      - name: Validate OpenAPI schema
+        run: npx --yes @apidevtools/swagger-cli validate openapi/openapi.yaml
+
+      - name: Check OpenAPI drift with handlers
+        run: python3 scripts/check_openapi_drift.py
+
+      - name: Build Docker image
+        run: docker build -t flexfence-backend:ci .
