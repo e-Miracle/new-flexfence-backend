@@ -22,14 +22,33 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Pack source for server
+        working-directory: ${{ github.workspace }}
         run: |
-          tar -czf /tmp/deploy.tar.gz \
+          tar -czf deploy.tar.gz \
+            --warning=no-file-changed \
+            --exclude=deploy.tar.gz \
             --exclude=.git \
             --exclude=node_modules \
             --exclude=dist \
             --exclude=.env \
             --exclude='*.md' \
-            -C "${{ github.workspace }}" .
+            .
+          if [ ! -s deploy.tar.gz ]; then
+            echo "deploy.tar.gz is missing or empty" >&2
+            exit 1
+          fi
+          ls -lh deploy.tar.gz
+
+      - name: Ensure deploy directory on server
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          envs: DEPLOY_APP_DIR
+          script: mkdir -p "${DEPLOY_APP_DIR:-/opt/flexfence/backend}"
+        env:
+          DEPLOY_APP_DIR: ${{ secrets.DEPLOY_APP_DIR }}
 
       - name: Copy bundle to server
         uses: appleboy/scp-action@v0.1.7
@@ -37,8 +56,9 @@ jobs:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
-          source: /tmp/deploy.tar.gz
+          source: deploy.tar.gz
           target: /opt/flexfence/backend
+          overwrite: true
 
       - name: Build and run on server
         uses: appleboy/ssh-action@v1.2.0
@@ -50,7 +70,6 @@ jobs:
           script: |
             set -euo pipefail
             APP_DIR="${DEPLOY_APP_DIR:-/opt/flexfence/backend}"
-            mkdir -p "$APP_DIR"
             cd "$APP_DIR"
             if [ ! -f .env ]; then
               echo "Missing ${APP_DIR}/.env — create it on the server before deploy." >&2
