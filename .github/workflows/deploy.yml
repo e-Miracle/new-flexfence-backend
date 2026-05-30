@@ -23,14 +23,13 @@ jobs:
 
       - name: Pack source for server
         run: |
-          tar -czf deploy.tar.gz \
+          tar -czf /tmp/deploy.tar.gz \
             --exclude=.git \
             --exclude=node_modules \
             --exclude=dist \
             --exclude=.env \
             --exclude='*.md' \
-            --exclude=deploy.tar.gz \
-            .
+            -C "${{ github.workspace }}" .
 
       - name: Copy bundle to server
         uses: appleboy/scp-action@v0.1.7
@@ -38,7 +37,7 @@ jobs:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
-          source: deploy.tar.gz
+          source: /tmp/deploy.tar.gz
           target: /opt/flexfence/backend
 
       - name: Build and run on server
