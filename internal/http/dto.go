@@ -126,13 +126,15 @@ type UpdateMyProfileRequest struct {
 }
 
 type RecordClockInRequest struct {
-	EventID    string  `json:"event_id"`
-	EventTitle string  `json:"event_title"`
-	FenceID    string  `json:"fence_id"`
-	FenceName  string  `json:"fence_name"`
-	Source     string  `json:"source"`
-	Lat        float64 `json:"lat"`
-	Lng        float64 `json:"lng"`
+	EventID      string  `json:"event_id"`
+	EventTitle   string  `json:"event_title"`
+	FenceID      string  `json:"fence_id"`
+	FenceName    string  `json:"fence_name"`
+	Source       string  `json:"source"`
+	Lat          float64 `json:"lat"`
+	Lng          float64 `json:"lng"`
+	AccuracyM    float64 `json:"accuracy_m,omitempty"`
+	MockLocation bool    `json:"mock_location,omitempty"`
 }
 
 type RecordClockOutRequest struct {
@@ -165,11 +167,12 @@ type JoinByQRRequest struct {
 }
 
 type MarkPresentRequest struct {
-	UserID    string  `json:"user_id"`
-	Source    string  `json:"source"`
-	Lat       float64 `json:"lat"`
-	Lng       float64 `json:"lng"`
-	AccuracyM float64 `json:"accuracy_m"`
+	UserID       string  `json:"user_id"`
+	Source       string  `json:"source"`
+	Lat          float64 `json:"lat"`
+	Lng          float64 `json:"lng"`
+	AccuracyM    float64 `json:"accuracy_m"`
+	MockLocation bool    `json:"mock_location,omitempty"`
 }
 
 type ConsentTemplateRequest struct {

@@ -34,8 +34,9 @@ type User struct {
 	Email     string    `json:"email"`
 	FirstName string    `json:"first_name,omitempty"`
 	LastName  string    `json:"last_name,omitempty"`
-	Phone     string    `json:"phone,omitempty"`
-	Status    string    `json:"status"`
+	Phone         string    `json:"phone,omitempty"`
+	EmailVerified bool      `json:"email_verified"`
+	Status        string    `json:"status"`
 	GoogleSub string    `json:"-"`
 	AppleSub  string    `json:"-"`
 	CreatedAt time.Time `json:"created_at"`

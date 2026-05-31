@@ -234,10 +234,11 @@ func (s *IdentityStore) UpsertUserFromGoogle(googleSub, email, firstName, lastNa
 	} else if ok {
 		now := time.Now().UTC()
 		if err := s.db.Model(&UserModel{}).Where("id = ?", byEmail.ID).Updates(map[string]any{
-			"google_sub": googleSub,
-			"first_name": firstName,
-			"last_name":  lastName,
-			"updated_at": now,
+			"google_sub":     googleSub,
+			"first_name":     firstName,
+			"last_name":      lastName,
+			"email_verified": true,
+			"updated_at":     now,
 		}).Error; err != nil {
 			return domain.User{}, err
 		}
@@ -251,14 +252,15 @@ func (s *IdentityStore) UpsertUserFromGoogle(googleSub, email, firstName, lastNa
 func (s *IdentityStore) CreateUserWithGoogle(googleSub, email, firstName, lastName string) (domain.User, error) {
 	now := time.Now().UTC()
 	user := UserModel{
-		ID:        fmt.Sprintf("usr_%d", now.UnixNano()),
-		Email:     email,
-		FirstName: firstName,
-		LastName:  lastName,
-		GoogleSub: googleSub,
-		Status:    domain.StatusActive,
-		CreatedAt: now,
-		UpdatedAt: now,
+		ID:            fmt.Sprintf("usr_%d", now.UnixNano()),
+		Email:         email,
+		FirstName:     firstName,
+		LastName:      lastName,
+		GoogleSub:     googleSub,
+		EmailVerified: true,
+		Status:        domain.StatusActive,
+		CreatedAt:     now,
+		UpdatedAt:     now,
 	}
 	if err := s.db.Create(&user).Error; err != nil {
 		return domain.User{}, err
@@ -477,13 +479,14 @@ func mapBusinessUserModel(m BusinessUserModel) domain.BusinessUser {
 
 func mapUserModel(m UserModel) domain.User {
 	return domain.User{
-		ID:        m.ID,
-		Email:     m.Email,
-		FirstName: m.FirstName,
-		LastName:  m.LastName,
-		Phone:     m.Phone,
-		Status:    m.Status,
-		CreatedAt: m.CreatedAt,
-		UpdatedAt: m.UpdatedAt,
+		ID:            m.ID,
+		Email:         m.Email,
+		FirstName:     m.FirstName,
+		LastName:      m.LastName,
+		Phone:         m.Phone,
+		EmailVerified: m.EmailVerified,
+		Status:        m.Status,
+		CreatedAt:     m.CreatedAt,
+		UpdatedAt:     m.UpdatedAt,
 	}
 }

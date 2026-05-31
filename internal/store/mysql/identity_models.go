@@ -40,8 +40,9 @@ type UserModel struct {
 	PasswordHash string    `gorm:"column:password_hash;size:255"`
 	FirstName    string    `gorm:"column:first_name;size:128"`
 	LastName     string    `gorm:"column:last_name;size:128"`
-	Phone        string    `gorm:"column:phone;size:32"`
-	Status       string    `gorm:"column:status;size:32;not null;default:active;index"`
+	Phone          string    `gorm:"column:phone;size:32"`
+	EmailVerified  bool      `gorm:"column:email_verified;not null;default:false"`
+	Status         string    `gorm:"column:status;size:32;not null;default:active;index"`
 	GoogleSub    string    `gorm:"column:google_sub;size:255;uniqueIndex"`
 	AppleSub     string    `gorm:"column:apple_sub;size:255;uniqueIndex"`
 	CreatedAt    time.Time `gorm:"column:created_at;not null"`

@@ -190,6 +190,26 @@ func recordClockInHandler(dataStore store.Store) http.HandlerFunc {
 			writeInvalidJSON(w, err)
 			return
 		}
+		if err := validateStrictLocationReport(req.Lat, req.Lng, req.AccuracyM, req.MockLocation); err != nil {
+			writeLocationValidationErr(w, err)
+			return
+		}
+		source := strings.TrimSpace(req.Source)
+		if source == "geofence" && strings.TrimSpace(req.EventID) != "" && strings.TrimSpace(req.FenceID) != "" {
+			fence, ok, err := dataStore.GetFenceByEvent(req.EventID, req.FenceID)
+			if err != nil {
+				writeAPIError(w, http.StatusInternalServerError, "internal_error", "An internal server error occurred")
+				return
+			}
+			if !ok {
+				writeAPIError(w, http.StatusNotFound, "fence_not_found", "Fence was not found")
+				return
+			}
+			if err := domain.ValidateGeofenceClockIn(fence, req.Lat, req.Lng); err != nil {
+				writeLocationValidationErr(w, err)
+				return
+			}
+		}
 		session, err := dataStore.RecordClockIn(
 			user.UserID,
 			req.EventID,

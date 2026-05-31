@@ -10,16 +10,18 @@ import (
 )
 
 type FenceCaptureLinkResponse struct {
-	Session   domain.FenceCaptureSession `json:"session"`
-	CaptureLink string                   `json:"capture_link"`
-	DeepLink    string                   `json:"deep_link"`
+	Session       domain.FenceCaptureSession `json:"session"`
+	CaptureLink   string                     `json:"capture_link"`
+	DeepLink      string                     `json:"deep_link"`
+	QRCodePayload string                     `json:"qr_code_payload"`
 }
 
 type SubmitCapturePointRequest struct {
-	Lat       float64 `json:"lat"`
-	Lng       float64 `json:"lng"`
-	AccuracyM float64 `json:"accuracy_m"`
-	Role      string  `json:"role,omitempty"`
+	Lat          float64 `json:"lat"`
+	Lng          float64 `json:"lng"`
+	AccuracyM    float64 `json:"accuracy_m"`
+	Role         string  `json:"role,omitempty"`
+	MockLocation bool    `json:"mock_location,omitempty"`
 }
 
 type CreateFenceCaptureRequest struct {
@@ -54,9 +56,10 @@ func createFenceCaptureHandler(dataStore store.Store, joinPublicBase string) htt
 			return
 		}
 		writeJSON(w, http.StatusCreated, FenceCaptureLinkResponse{
-			Session:     session,
-			CaptureLink: buildFenceCaptureLink(eventID, session.Token, joinPublicBase),
-			DeepLink:    buildFenceCaptureDeepLink(eventID, session.Token),
+			Session:       session,
+			CaptureLink:   buildFenceCaptureLink(eventID, session.Token, joinPublicBase),
+			DeepLink:      buildFenceCaptureDeepLink(eventID, session.Token),
+			QRCodePayload: buildFenceCaptureDeepLink(eventID, session.Token),
 		})
 	}
 }
@@ -82,9 +85,10 @@ func getFenceCaptureHandler(dataStore store.Store, joinPublicBase string) http.H
 			return
 		}
 		writeJSON(w, http.StatusOK, FenceCaptureLinkResponse{
-			Session:     session,
-			CaptureLink: buildFenceCaptureLink(eventID, session.Token, joinPublicBase),
-			DeepLink:    buildFenceCaptureDeepLink(eventID, session.Token),
+			Session:       session,
+			CaptureLink:   buildFenceCaptureLink(eventID, session.Token, joinPublicBase),
+			DeepLink:      buildFenceCaptureDeepLink(eventID, session.Token),
+			QRCodePayload: buildFenceCaptureDeepLink(eventID, session.Token),
 		})
 	}
 }
@@ -183,6 +187,10 @@ func publicSubmitCapturePointHandler(dataStore store.Store) http.HandlerFunc {
 		}
 		if req.Lat == 0 && req.Lng == 0 {
 			writeAPIError(w, http.StatusBadRequest, "coordinates_required", "lat and lng are required")
+			return
+		}
+		if err := validateStrictLocationReport(req.Lat, req.Lng, req.AccuracyM, req.MockLocation); err != nil {
+			writeLocationValidationErr(w, err)
 			return
 		}
 

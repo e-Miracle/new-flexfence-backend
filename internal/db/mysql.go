@@ -27,6 +27,7 @@ func AutoMigrate(db *gorm.DB) error {
 		&mysqlstore.ConsentTemplateModel{},
 		&mysqlstore.OrganizationConsentFieldModel{},
 		&mysqlstore.BusinessOTPChallengeModel{},
+		&mysqlstore.UserOTPChallengeModel{},
 		&mysqlstore.GeofenceAlertModel{},
 	)
 }

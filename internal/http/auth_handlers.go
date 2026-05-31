@@ -210,24 +210,16 @@ func userRegisterHandler(deps RouterDeps) http.HandlerFunc {
 			writeAPIError(w, http.StatusInternalServerError, "internal_error", "An internal server error occurred")
 			return
 		}
-		token, expiresAt, err := deps.Tokens.IssueUserToken(user.ID)
+		resp, err := issueAndSendUserOTP(r.Context(), deps, user.ID, "")
 		if err != nil {
+			if errors.Is(err, errEmailSendFailed) {
+				writeAPIError(w, http.StatusBadGateway, "email_send_failed", "Could not send verification email; check SMTP settings")
+				return
+			}
 			writeAPIError(w, http.StatusInternalServerError, "internal_error", "An internal server error occurred")
 			return
 		}
-		writeJSON(w, http.StatusCreated, UserLoginResponse{
-			AuthTokenResponse: AuthTokenResponse{
-				AccessToken: token,
-				TokenType:   "Bearer",
-				ExpiresAt:   expiresAt.Format(time.RFC3339),
-			},
-			User: UserProfile{
-				ID:        user.ID,
-				Email:     user.Email,
-				FirstName: user.FirstName,
-				LastName:  user.LastName,
-			},
-		})
+		writeJSON(w, http.StatusCreated, resp)
 	}
 }
 
@@ -258,6 +250,19 @@ func userLoginHandler(deps RouterDeps) http.HandlerFunc {
 		}
 		if record.User.Status != domain.StatusActive {
 			writeAPIError(w, http.StatusForbidden, "account_disabled", "Account is disabled")
+			return
+		}
+		if !record.User.EmailVerified {
+			resp, err := issueAndSendUserOTP(r.Context(), deps, record.User.ID, "")
+			if err != nil {
+				if errors.Is(err, errEmailSendFailed) {
+					writeAPIError(w, http.StatusBadGateway, "email_send_failed", "Could not send verification email")
+					return
+				}
+				writeAPIError(w, http.StatusInternalServerError, "internal_error", "An internal server error occurred")
+				return
+			}
+			writeJSON(w, http.StatusForbidden, resp)
 			return
 		}
 		issueUserLoginResponse(w, deps, record.User)

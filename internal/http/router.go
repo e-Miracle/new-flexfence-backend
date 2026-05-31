@@ -22,6 +22,8 @@ func NewRouter(deps RouterDeps) http.Handler {
 	mux.Handle("/v1/auth/business/oauth/google", g.Public(http.HandlerFunc(businessGoogleOAuthHandler(deps))))
 	mux.Handle("/v1/auth/user/register", g.Public(http.HandlerFunc(userRegisterHandler(deps))))
 	mux.Handle("/v1/auth/user/login", g.Public(http.HandlerFunc(userLoginHandler(deps))))
+	mux.Handle("/v1/auth/user/otp/verify", g.Public(http.HandlerFunc(userOTPVerifyHandler(deps))))
+	mux.Handle("/v1/auth/user/otp/resend", g.Public(http.HandlerFunc(userOTPResendHandler(deps))))
 	mux.Handle("/v1/auth/user/oauth/google", g.Public(http.HandlerFunc(userGoogleOAuthHandler(deps))))
 
 	mux.Handle("/v1/me/event-joins", Chain(
@@ -430,6 +432,10 @@ func mobileEventHandler(dataStore store.Store, identityStore *mysqlstore.Identit
 		var req MarkPresentRequest
 		if err := decodeJSON(r, &req); err != nil {
 			writeInvalidJSON(w, err)
+			return
+		}
+		if err := validateStrictLocationReport(req.Lat, req.Lng, req.AccuracyM, req.MockLocation); err != nil {
+			writeLocationValidationErr(w, err)
 			return
 		}
 		source := req.Source

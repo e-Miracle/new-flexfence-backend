@@ -24,7 +24,6 @@ func buildEventShare(event domain.Event, qrToken, joinPublicBase string) domain.
 	if base != "" {
 		web := fmt.Sprintf("%s/join/%s?token=%s", base, event.ID, token)
 		share.JoinWebLink = web
-		share.QRCodePayload = web
 	}
 
 	return share
