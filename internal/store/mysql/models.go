@@ -11,9 +11,13 @@ type EventModel struct {
 	StartAt     time.Time `gorm:"column:start_at"`
 	EndAt       time.Time `gorm:"column:end_at"`
 	Status            string     `gorm:"column:status;size:32;not null;index"`
-	QRToken           string     `gorm:"column:qr_token;size:64;index"`
-	GoLiveProcessedAt *time.Time `gorm:"column:go_live_processed_at;index"`
-	CreatedAt         time.Time  `gorm:"column:created_at;not null"`
+	QRToken                  string     `gorm:"column:qr_token;size:64;index"`
+	ScanToClockInEnabled     bool       `gorm:"column:scan_to_clock_in_enabled;not null;default:false"`
+	ClockInQRToken           string     `gorm:"column:clock_in_qr_token;size:64;index"`
+	ClockInQRIssuedAt        *time.Time `gorm:"column:clock_in_qr_issued_at"`
+	ClockInQRRotationMinutes int        `gorm:"column:clock_in_qr_rotation_minutes;not null;default:0"`
+	GoLiveProcessedAt        *time.Time `gorm:"column:go_live_processed_at;index"`
+	CreatedAt                time.Time  `gorm:"column:created_at;not null"`
 }
 
 func (EventModel) TableName() string { return "events" }

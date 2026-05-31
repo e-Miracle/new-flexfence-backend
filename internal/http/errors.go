@@ -58,6 +58,12 @@ func writeStoreErr(w http.ResponseWriter, err error) {
 		writeAPIError(w, http.StatusConflict, "already_marked_present", "User is already marked present for this event")
 	case errors.Is(err, store.ErrInvalidQRToken):
 		writeAPIError(w, http.StatusBadRequest, "invalid_qr_token", "QR token is invalid")
+	case errors.Is(err, store.ErrClockInQRDisabled):
+		writeAPIError(w, http.StatusBadRequest, "clock_in_qr_disabled", "Scan to clock-in is not enabled for this event")
+	case errors.Is(err, store.ErrClockInQRExpired):
+		writeAPIError(w, http.StatusBadRequest, "clock_in_qr_expired", "Clock-in QR code has expired")
+	case errors.Is(err, store.ErrNotJoinedEvent):
+		writeAPIError(w, http.StatusForbidden, "not_joined_event", "You must join the event before clocking in")
 	case errors.Is(err, store.ErrInvalidSchedule):
 		writeAPIError(w, http.StatusBadRequest, "invalid_schedule", err.Error())
 	case errors.Is(err, store.ErrEventLive):

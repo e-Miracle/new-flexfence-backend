@@ -195,7 +195,30 @@ func recordClockInHandler(dataStore store.Store) http.HandlerFunc {
 			return
 		}
 		source := strings.TrimSpace(req.Source)
-		if source == "geofence" && strings.TrimSpace(req.EventID) != "" && strings.TrimSpace(req.FenceID) != "" {
+		if source == "qr_scan" {
+			if strings.TrimSpace(req.QRToken) == "" {
+				writeAPIError(w, http.StatusBadRequest, "qr_token_required", "qr_token is required")
+				return
+			}
+			if strings.TrimSpace(req.EventID) == "" {
+				writeAPIError(w, http.StatusBadRequest, "event_id_required", "event_id is required")
+				return
+			}
+			if err := dataStore.ValidateEventClockInQRToken(req.EventID, req.QRToken); err != nil {
+				writeStoreErr(w, err)
+				return
+			}
+			joined, err := dataStore.UserHasJoinedEvent(req.EventID, user.UserID)
+			if err != nil {
+				writeAPIError(w, http.StatusInternalServerError, "internal_error", "An internal server error occurred")
+				return
+			}
+			if !joined {
+				writeAPIError(w, http.StatusForbidden, "not_joined_event", "You must join the event before clocking in")
+				return
+			}
+		}
+		if (source == "geofence" || source == "qr_scan") && strings.TrimSpace(req.EventID) != "" && strings.TrimSpace(req.FenceID) != "" {
 			fence, ok, err := dataStore.GetFenceByEvent(req.EventID, req.FenceID)
 			if err != nil {
 				writeAPIError(w, http.StatusInternalServerError, "internal_error", "An internal server error occurred")

@@ -25,6 +25,9 @@ func NewRouter(deps RouterDeps) http.Handler {
 	mux.Handle("/v1/auth/user/otp/verify", g.Public(http.HandlerFunc(userOTPVerifyHandler(deps))))
 	mux.Handle("/v1/auth/user/otp/resend", g.Public(http.HandlerFunc(userOTPResendHandler(deps))))
 	mux.Handle("/v1/auth/user/oauth/google", g.Public(http.HandlerFunc(userGoogleOAuthHandler(deps))))
+	mux.Handle("/v1/auth/user/password-reset/request", g.Public(http.HandlerFunc(userPasswordResetRequestHandler(deps))))
+	mux.Handle("/v1/auth/user/password-reset/resend", g.Public(http.HandlerFunc(userPasswordResetResendHandler(deps))))
+	mux.Handle("/v1/auth/user/password-reset/confirm", g.Public(http.HandlerFunc(userPasswordResetConfirmHandler(deps))))
 
 	mux.Handle("/v1/me/event-joins", Chain(
 		g.AllowMethods(http.MethodGet),
@@ -147,6 +150,24 @@ func NewRouter(deps RouterDeps) http.Handler {
 				func(h http.Handler) http.Handler { return g.BusinessWrite(h) },
 				g.RequireEventTenant(deps.DataStore),
 			)(regenerateEventQRHandler(deps.DataStore, deps.JoinPublicBase)).ServeHTTP(w, r)
+		case eventRouteClockInShare:
+			Chain(
+				g.AllowMethods(http.MethodGet),
+				func(h http.Handler) http.Handler { return g.BusinessRead(h) },
+				g.RequireEventTenant(deps.DataStore),
+			)(getEventClockInShareHandler(deps.DataStore, deps.JoinPublicBase)).ServeHTTP(w, r)
+		case eventRouteClockInSettings:
+			Chain(
+				g.AllowMethods(http.MethodPatch),
+				func(h http.Handler) http.Handler { return g.BusinessWrite(h) },
+				g.RequireEventTenant(deps.DataStore),
+			)(patchEventClockInSettingsHandler(deps.DataStore, deps.JoinPublicBase)).ServeHTTP(w, r)
+		case eventRouteClockInShareRegenerate:
+			Chain(
+				g.AllowMethods(http.MethodPost),
+				func(h http.Handler) http.Handler { return g.BusinessWrite(h) },
+				g.RequireEventTenant(deps.DataStore),
+			)(regenerateEventClockInShareHandler(deps.DataStore, deps.JoinPublicBase)).ServeHTTP(w, r)
 		case eventRouteEventAnalytics:
 			Chain(
 				g.AllowMethods(http.MethodGet),
@@ -204,6 +225,9 @@ const (
 	eventRouteConsent
 	eventRouteShare
 	eventRouteShareRegenerate
+	eventRouteClockInShare
+	eventRouteClockInSettings
+	eventRouteClockInShareRegenerate
 	eventRouteEventAnalytics
 	eventRouteFenceAnalytics
 	eventRouteFenceCapture
@@ -242,6 +266,15 @@ func classifyEventRoute(r *http.Request) eventRouteKind {
 	}
 	if len(parts) == 3 && parts[1] == "share" && parts[2] == "regenerate" && r.Method == http.MethodPost {
 		return eventRouteShareRegenerate
+	}
+	if len(parts) == 2 && parts[1] == "clock-in-share" && r.Method == http.MethodGet {
+		return eventRouteClockInShare
+	}
+	if len(parts) == 2 && parts[1] == "clock-in-settings" && r.Method == http.MethodPatch {
+		return eventRouteClockInSettings
+	}
+	if len(parts) == 3 && parts[1] == "clock-in-share" && parts[2] == "regenerate" && r.Method == http.MethodPost {
+		return eventRouteClockInShareRegenerate
 	}
 	if len(parts) == 2 && parts[1] == "analytics" && r.Method == http.MethodGet {
 		return eventRouteEventAnalytics

@@ -14,6 +14,7 @@ var (
 	ErrOTPExpired            = errors.New("otp_expired")
 	ErrOTPConsumed           = errors.New("otp_consumed")
 	ErrOTPTooManyAttempts    = errors.New("otp_too_many_attempts")
+	ErrSocialLoginOnly       = errors.New("social_login_only")
 	ErrAlreadyMarked       = errors.New("already_marked_present")
 	ErrInvalidQRToken      = errors.New("invalid_qr_token")
 	ErrInvalidStorageState = errors.New("invalid_storage_state")
@@ -29,6 +30,9 @@ var (
 	ErrInvalidCapture      = errors.New("invalid_capture")
 	ErrEventLive           = errors.New("event_live")
 	ErrFenceNotFound       = errors.New("fence_not_found")
+	ErrClockInQRDisabled   = errors.New("clock_in_qr_disabled")
+	ErrClockInQRExpired    = errors.New("clock_in_qr_expired")
+	ErrNotJoinedEvent      = errors.New("not_joined_event")
 )
 
 type UserEventJoinFilter struct {
@@ -63,6 +67,11 @@ type Store interface {
 	GetEventForOrganization(eventID, organizationID string) (domain.Event, bool, error)
 	EnsureEventQRToken(eventID string) (string, error)
 	RegenerateEventQRToken(eventID string) (string, error)
+	UpdateEventClockInSettings(eventID string, enabled bool, rotationMinutes int) error
+	EnsureEventClockInQRToken(eventID string) (token string, issuedAt time.Time, err error)
+	RegenerateEventClockInQRToken(eventID string) (token string, issuedAt time.Time, err error)
+	ValidateEventClockInQRToken(eventID, qrToken string) error
+	UserHasJoinedEvent(eventID, userID string) (bool, error)
 	AddFence(eventID string, in domain.FenceCreateInput) (domain.Fence, error)
 	DeleteFence(eventID, fenceID string) error
 	ListFencesByEvent(eventID string) ([]domain.Fence, error)

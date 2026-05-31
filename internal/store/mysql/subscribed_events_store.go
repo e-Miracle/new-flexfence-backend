@@ -43,17 +43,26 @@ func (s *Store) ListSubscribedGeofenceEvents(userID string, now time.Time) ([]do
 			}
 		}
 		out = append(out, domain.SubscribedGeofenceEvent{
-			ID:               join.ID,
-			EventID:          join.EventID,
-			EventTitle:       join.EventTitle,
-			EventDescription: join.EventDescription,
-			EventStartAt:     join.EventStartAt,
-			EventEndAt:       join.EventEndAt,
-			EventStatus:      join.EventStatus,
-			JoinSource:       join.JoinSource,
-			JoinedAt:         join.JoinedAt,
-			Fences:           circleFences,
+			ID:                   join.ID,
+			EventID:              join.EventID,
+			EventTitle:           join.EventTitle,
+			EventDescription:     join.EventDescription,
+			EventStartAt:         join.EventStartAt,
+			EventEndAt:           join.EventEndAt,
+			EventStatus:          join.EventStatus,
+			JoinSource:           join.JoinSource,
+			JoinedAt:             join.JoinedAt,
+			ScanToClockInEnabled: scanToClockInEnabled(s, join.EventID),
+			Fences:               circleFences,
 		})
 	}
 	return out, nil
+}
+
+func scanToClockInEnabled(s *Store, eventID string) bool {
+	var event EventModel
+	if err := s.db.Select("scan_to_clock_in_enabled").Where("id = ?", eventID).First(&event).Error; err != nil {
+		return false
+	}
+	return event.ScanToClockInEnabled
 }

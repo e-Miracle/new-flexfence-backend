@@ -289,6 +289,7 @@ func (s *IdentityStore) CreateUser(email, firstName, lastName, phone string) (do
 type UserAuthRecord struct {
 	User         domain.User
 	PasswordHash string
+	GoogleSub    string
 }
 
 func (s *IdentityStore) GetUserAuthByEmail(email string) (UserAuthRecord, bool, error) {
@@ -304,6 +305,7 @@ func (s *IdentityStore) GetUserAuthByEmail(email string) (UserAuthRecord, bool, 
 	return UserAuthRecord{
 		User:         mapUserModel(user),
 		PasswordHash: user.PasswordHash,
+		GoogleSub:    user.GoogleSub,
 	}, true, nil
 }
 
@@ -319,6 +321,7 @@ func (s *IdentityStore) GetUserAuthByID(userID string) (UserAuthRecord, bool, er
 	return UserAuthRecord{
 		User:         mapUserModel(user),
 		PasswordHash: user.PasswordHash,
+		GoogleSub:    user.GoogleSub,
 	}, true, nil
 }
 

@@ -13,6 +13,10 @@ type Event struct {
 	Status         string    `json:"status"`
 	CreatedAt      time.Time `json:"created_at"`
 	QRToken        string    `json:"-"` // never exposed on generic event APIs
+	ScanToClockInEnabled     bool       `json:"-"`
+	ClockInQRToken           string     `json:"-"`
+	ClockInQRIssuedAt        *time.Time `json:"-"`
+	ClockInQRRotationMinutes int        `json:"-"`
 }
 
 // EventShare is returned to organizers for invite links and QR encoding.
@@ -23,6 +27,20 @@ type EventShare struct {
 	JoinDeepLink   string `json:"join_deep_link"`
 	JoinWebLink    string `json:"join_web_link,omitempty"`
 	QRCodePayload  string `json:"qr_code_payload"`
+}
+
+// EventClockInShare is returned to organizers for scan-to-clock-in QR encoding.
+type EventClockInShare struct {
+	EventID                 string     `json:"event_id"`
+	EventTitle              string     `json:"event_title"`
+	ScanToClockInEnabled    bool       `json:"scan_to_clock_in_enabled"`
+	QRToken                 string     `json:"qr_token,omitempty"`
+	IssuedAt                *time.Time `json:"issued_at,omitempty"`
+	ExpiresAt               *time.Time `json:"expires_at,omitempty"`
+	RotationIntervalMinutes int        `json:"rotation_interval_minutes"`
+	ClockInDeepLink         string     `json:"clock_in_deep_link"`
+	ClockInWebLink          string     `json:"clock_in_web_link,omitempty"`
+	QRCodePayload           string     `json:"qr_code_payload"`
 }
 
 type Fence struct {
@@ -94,9 +112,10 @@ type SubscribedGeofenceEvent struct {
 	EventStartAt     time.Time `json:"event_start_at,omitempty"`
 	EventEndAt       time.Time `json:"event_end_at,omitempty"`
 	EventStatus      string    `json:"event_status,omitempty"`
-	JoinSource       string    `json:"join_source"`
-	JoinedAt         time.Time `json:"joined_at"`
-	Fences           []Fence   `json:"fences"`
+	JoinSource            string    `json:"join_source"`
+	JoinedAt              time.Time `json:"joined_at"`
+	ScanToClockInEnabled  bool      `json:"scan_to_clock_in_enabled"`
+	Fences                []Fence   `json:"fences"`
 }
 
 type AttendanceRecord struct {

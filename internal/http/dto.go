@@ -131,6 +131,7 @@ type RecordClockInRequest struct {
 	FenceID      string  `json:"fence_id"`
 	FenceName    string  `json:"fence_name"`
 	Source       string  `json:"source"`
+	QRToken      string  `json:"qr_token"`
 	Lat          float64 `json:"lat"`
 	Lng          float64 `json:"lng"`
 	AccuracyM    float64 `json:"accuracy_m,omitempty"`

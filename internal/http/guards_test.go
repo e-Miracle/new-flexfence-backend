@@ -43,6 +43,9 @@ func TestClassifyEventRoute(t *testing.T) {
 		{http.MethodGet, "/v1/events/evt_1/consent-template", eventRouteConsent},
 		{http.MethodGet, "/v1/events/evt_1/share", eventRouteShare},
 		{http.MethodPost, "/v1/events/evt_1/share/regenerate", eventRouteShareRegenerate},
+		{http.MethodGet, "/v1/events/evt_1/clock-in-share", eventRouteClockInShare},
+		{http.MethodPatch, "/v1/events/evt_1/clock-in-settings", eventRouteClockInSettings},
+		{http.MethodPost, "/v1/events/evt_1/clock-in-share/regenerate", eventRouteClockInShareRegenerate},
 		{http.MethodGet, "/v1/events/evt_1/analytics", eventRouteEventAnalytics},
 		{http.MethodGet, "/v1/events/evt_1/fences/fence_1/analytics", eventRouteFenceAnalytics},
 	}

@@ -41,7 +41,7 @@ func (s *Store) RecordClockIn(userID, eventID, eventTitle, fenceID, fenceName, s
 	if strings.TrimSpace(source) == "" {
 		source = "manual"
 	}
-	verified := source == "geofence" || lat != 0 || lng != 0
+	verified := source == "geofence" || source == "qr_scan" || lat != 0 || lng != 0
 	row := UserActivitySessionModel{
 		ID:         fmt.Sprintf("act_%d", now.UnixNano()),
 		UserID:     userID,

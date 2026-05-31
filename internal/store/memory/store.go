@@ -105,6 +105,119 @@ func (s *Store) RegenerateEventQRToken(eventID string) (string, error) {
 	return token, nil
 }
 
+func (s *Store) UpdateEventClockInSettings(eventID string, enabled bool, rotationMinutes int) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	event, ok := s.events[eventID]
+	if !ok {
+		return store.ErrEventNotFound
+	}
+	if rotationMinutes < 0 || (rotationMinutes > 0 && rotationMinutes < 5) {
+		return store.ErrInvalidSchedule
+	}
+	event.ScanToClockInEnabled = enabled
+	event.ClockInQRRotationMinutes = rotationMinutes
+	if !enabled {
+		event.ClockInQRToken = ""
+		event.ClockInQRIssuedAt = nil
+	}
+	s.events[eventID] = event
+	if enabled && strings.TrimSpace(event.ClockInQRToken) == "" {
+		_, _, err := s.ensureEventClockInQRTokenLocked(eventID)
+		return err
+	}
+	return nil
+}
+
+func (s *Store) EnsureEventClockInQRToken(eventID string) (string, time.Time, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.ensureEventClockInQRTokenLocked(eventID)
+}
+
+func (s *Store) ensureEventClockInQRTokenLocked(eventID string) (string, time.Time, error) {
+	event, ok := s.events[eventID]
+	if !ok {
+		return "", time.Time{}, store.ErrEventNotFound
+	}
+	if !event.ScanToClockInEnabled {
+		return "", time.Time{}, store.ErrClockInQRDisabled
+	}
+	now := time.Now().UTC()
+	if strings.TrimSpace(event.ClockInQRToken) != "" &&
+		!memoryClockInQRIsExpired(event.ClockInQRIssuedAt, event.ClockInQRRotationMinutes, now) {
+		issued := now
+		if event.ClockInQRIssuedAt != nil {
+			issued = event.ClockInQRIssuedAt.UTC()
+		}
+		return event.ClockInQRToken, issued, nil
+	}
+	return s.issueEventClockInQRTokenLocked(eventID, now)
+}
+
+func (s *Store) RegenerateEventClockInQRToken(eventID string) (string, time.Time, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	event, ok := s.events[eventID]
+	if !ok {
+		return "", time.Time{}, store.ErrEventNotFound
+	}
+	if !event.ScanToClockInEnabled {
+		return "", time.Time{}, store.ErrClockInQRDisabled
+	}
+	return s.issueEventClockInQRTokenLocked(eventID, time.Now().UTC())
+}
+
+func (s *Store) issueEventClockInQRTokenLocked(eventID string, now time.Time) (string, time.Time, error) {
+	token, err := auth.GenerateQRToken()
+	if err != nil {
+		return "", time.Time{}, err
+	}
+	event := s.events[eventID]
+	issuedAt := now.UTC()
+	event.ClockInQRToken = token
+	event.ClockInQRIssuedAt = &issuedAt
+	s.events[eventID] = event
+	return token, issuedAt, nil
+}
+
+func memoryClockInQRIsExpired(issuedAt *time.Time, rotationMinutes int, now time.Time) bool {
+	if rotationMinutes <= 0 || issuedAt == nil || issuedAt.IsZero() {
+		return false
+	}
+	return !now.Before(issuedAt.Add(time.Duration(rotationMinutes) * time.Minute))
+}
+
+func (s *Store) ValidateEventClockInQRToken(eventID, qrToken string) error {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	event, ok := s.events[eventID]
+	if !ok {
+		return store.ErrEventNotFound
+	}
+	if !event.ScanToClockInEnabled {
+		return store.ErrClockInQRDisabled
+	}
+	if strings.TrimSpace(qrToken) == "" || qrToken != event.ClockInQRToken {
+		return store.ErrInvalidQRToken
+	}
+	if memoryClockInQRIsExpired(event.ClockInQRIssuedAt, event.ClockInQRRotationMinutes, time.Now().UTC()) {
+		return store.ErrClockInQRExpired
+	}
+	return nil
+}
+
+func (s *Store) UserHasJoinedEvent(eventID, userID string) (bool, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	for _, join := range s.joins[eventID] {
+		if join.UserID == userID {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 func (s *Store) ListEvents() ([]domain.Event, error) {
 	return s.ListEventsByOrganization("")
 }
@@ -629,17 +742,20 @@ func (s *Store) ListSubscribedGeofenceEvents(userID string, now time.Time) ([]do
 			}
 			circleFences = append(circleFences, f)
 		}
+		event, ok := s.events[join.EventID]
+		scanEnabled := ok && event.ScanToClockInEnabled
 		out = append(out, domain.SubscribedGeofenceEvent{
-			ID:               join.ID,
-			EventID:          join.EventID,
-			EventTitle:       join.EventTitle,
-			EventDescription: join.EventDescription,
-			EventStartAt:     join.EventStartAt,
-			EventEndAt:       join.EventEndAt,
-			EventStatus:      join.EventStatus,
-			JoinSource:       join.JoinSource,
-			JoinedAt:         join.JoinedAt,
-			Fences:           circleFences,
+			ID:                   join.ID,
+			EventID:              join.EventID,
+			EventTitle:           join.EventTitle,
+			EventDescription:     join.EventDescription,
+			EventStartAt:         join.EventStartAt,
+			EventEndAt:           join.EventEndAt,
+			EventStatus:          join.EventStatus,
+			JoinSource:           join.JoinSource,
+			JoinedAt:             join.JoinedAt,
+			ScanToClockInEnabled: scanEnabled,
+			Fences:               circleFences,
 		})
 	}
 	return out, nil
@@ -659,7 +775,7 @@ func (s *Store) RecordClockIn(userID, eventID, eventTitle, fenceID, fenceName, s
 		FenceID:    fenceID,
 		FenceName:  fenceName,
 		ClockInAt:  now,
-		Verified:   source == "geofence",
+		Verified:   source == "geofence" || source == "qr_scan",
 		Source:     source,
 		CreatedAt:  now,
 	}, nil

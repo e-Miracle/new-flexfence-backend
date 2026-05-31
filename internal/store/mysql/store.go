@@ -244,8 +244,12 @@ func mapEventModel(m EventModel) domain.Event {
 		StartAt:        m.StartAt,
 		EndAt:          m.EndAt,
 		Status:         m.Status,
-		CreatedAt:      m.CreatedAt,
-		QRToken:        m.QRToken,
+		CreatedAt:                m.CreatedAt,
+		QRToken:                  m.QRToken,
+		ScanToClockInEnabled:     m.ScanToClockInEnabled,
+		ClockInQRToken:           m.ClockInQRToken,
+		ClockInQRIssuedAt:        m.ClockInQRIssuedAt,
+		ClockInQRRotationMinutes: m.ClockInQRRotationMinutes,
 	}
 }
 
