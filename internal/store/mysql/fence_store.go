@@ -1,6 +1,7 @@
 package mysql
 
 import (
+	"context"
 	"time"
 
 	"github.com/flexfence/flexfence-backend/internal/domain"
@@ -61,6 +62,10 @@ func (s *Store) createGeofenceAlertsForEventJoins(event domain.Event, alertType,
 		}
 		if err := s.db.Create(&alert).Error; err != nil {
 			return err
+		}
+		if s.notifier != nil {
+			mapped := mapGeofenceAlertModel(alert)
+			go s.notifier.DispatchGeofenceAlert(context.Background(), join.UserID, mapped)
 		}
 		now = now.Add(time.Nanosecond)
 	}

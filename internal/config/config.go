@@ -31,7 +31,9 @@ type Config struct {
 	OTPLength          int
 	OTPExpireMinutes   int
 	DashboardURL       string
-	JoinPublicBase     string
+	JoinPublicBase          string
+	FCMProjectID            string
+	FCMServiceAccountFile   string
 }
 
 func Load() Config {
@@ -133,7 +135,9 @@ func Load() Config {
 		OTPLength:          otpLength,
 		OTPExpireMinutes:   otpExpireMinutes,
 		DashboardURL:       dashboardURL,
-		JoinPublicBase:     strings.TrimSpace(os.Getenv("JOIN_PUBLIC_BASE_URL")),
+		JoinPublicBase:        strings.TrimSpace(os.Getenv("JOIN_PUBLIC_BASE_URL")),
+		FCMProjectID:          strings.TrimSpace(os.Getenv("FCM_PROJECT_ID")),
+		FCMServiceAccountFile: strings.TrimSpace(os.Getenv("FCM_SERVICE_ACCOUNT_FILE")),
 	}
 }
 

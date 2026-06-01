@@ -9,6 +9,7 @@ import (
 	"github.com/flexfence/flexfence-backend/internal/auth"
 	"github.com/flexfence/flexfence-backend/internal/domain"
 	"github.com/flexfence/flexfence-backend/internal/mail"
+	"github.com/flexfence/flexfence-backend/internal/notify"
 	"github.com/flexfence/flexfence-backend/internal/store"
 	mysqlstore "github.com/flexfence/flexfence-backend/internal/store/mysql"
 )
@@ -18,6 +19,7 @@ type RouterDeps struct {
 	IdentityStore    *mysqlstore.IdentityStore
 	Tokens           *auth.TokenService
 	Mailer           mail.Mailer
+	Notifier         *notify.Dispatcher
 	GoogleClient     string
 	OTPLength        int
 	OTPExpireMinutes int

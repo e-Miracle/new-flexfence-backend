@@ -11,6 +11,8 @@ import (
 	apphttp "github.com/flexfence/flexfence-backend/internal/http"
 	"github.com/flexfence/flexfence-backend/internal/jobs"
 	"github.com/flexfence/flexfence-backend/internal/mail"
+	"github.com/flexfence/flexfence-backend/internal/notify"
+	"github.com/flexfence/flexfence-backend/internal/push"
 	mysqlstore "github.com/flexfence/flexfence-backend/internal/store/mysql"
 )
 
@@ -34,8 +36,6 @@ func main() {
 
 	dataStore := mysqlstore.New(gormDB)
 	identityStore := mysqlstore.NewIdentityStore(gormDB)
-	jobs.StartActivityHistoryTrim(dataStore, 24*time.Hour)
-	jobs.StartEventGoLiveMonitor(dataStore, time.Minute)
 	mailer := mail.NewFromConfig(mail.SMTPConfig{
 		Host:      cfg.SMTPHost,
 		Port:      cfg.SMTPPort,
@@ -49,12 +49,23 @@ func main() {
 	} else {
 		log.Printf("smtp not configured; OTP emails will be logged to stdout (set SMTP_HOST and SMTP_FROM_EMAIL)")
 	}
+	fcmSender := push.NewFCMSender(cfg.FCMProjectID, cfg.FCMServiceAccountFile)
+	notifier := notify.NewDispatcher(identityStore, mailer, fcmSender)
+	dataStore.SetNotifier(notifier)
+	if fcmSender != nil && fcmSender.Enabled() {
+		log.Printf("fcm v1 push enabled for project %s", cfg.FCMProjectID)
+	} else {
+		log.Printf("fcm not configured; set FCM_PROJECT_ID and FCM_SERVICE_ACCOUNT_FILE for mobile push")
+	}
+	jobs.StartActivityHistoryTrim(dataStore, 24*time.Hour)
+	jobs.StartEventGoLiveMonitor(dataStore, time.Minute)
 
 	handler := apphttp.NewRouter(apphttp.RouterDeps{
 		DataStore:        dataStore,
 		IdentityStore:    identityStore,
 		Tokens:           tokens,
 		Mailer:           mailer,
+		Notifier:         notifier,
 		GoogleClient:     cfg.GoogleClientID,
 		OTPLength:        cfg.OTPLength,
 		OTPExpireMinutes: cfg.OTPExpireMinutes,

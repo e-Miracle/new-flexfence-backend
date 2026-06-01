@@ -30,5 +30,6 @@ func AutoMigrate(db *gorm.DB) error {
 		&mysqlstore.UserOTPChallengeModel{},
 		&mysqlstore.UserPasswordResetChallengeModel{},
 		&mysqlstore.GeofenceAlertModel{},
+		&mysqlstore.UserDeviceTokenModel{},
 	)
 }

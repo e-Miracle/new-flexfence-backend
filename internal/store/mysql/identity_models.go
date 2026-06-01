@@ -43,10 +43,15 @@ type UserModel struct {
 	Phone          string    `gorm:"column:phone;size:32"`
 	EmailVerified  bool      `gorm:"column:email_verified;not null;default:false"`
 	Status         string    `gorm:"column:status;size:32;not null;default:active;index"`
-	GoogleSub    string    `gorm:"column:google_sub;size:255;uniqueIndex"`
-	AppleSub     string    `gorm:"column:apple_sub;size:255;uniqueIndex"`
-	CreatedAt    time.Time `gorm:"column:created_at;not null"`
-	UpdatedAt    time.Time `gorm:"column:updated_at;not null"`
+	GoogleSub              string    `gorm:"column:google_sub;size:255;uniqueIndex"`
+	AppleSub               string    `gorm:"column:apple_sub;size:255;uniqueIndex"`
+	NotifyGeofence         bool      `gorm:"column:notify_geofence;not null;default:true"`
+	NotifyMissedCheck      bool      `gorm:"column:notify_missed_check;not null;default:true"`
+	NotifySound            bool      `gorm:"column:notify_sound;not null;default:false"`
+	NotifyEmail            bool      `gorm:"column:notify_email;not null;default:true"`
+	NotifyPush             bool      `gorm:"column:notify_push;not null;default:false"`
+	CreatedAt              time.Time `gorm:"column:created_at;not null"`
+	UpdatedAt              time.Time `gorm:"column:updated_at;not null"`
 }
 
 func (UserModel) TableName() string { return "users" }

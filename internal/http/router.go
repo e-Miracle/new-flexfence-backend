@@ -29,6 +29,39 @@ func NewRouter(deps RouterDeps) http.Handler {
 	mux.Handle("/v1/auth/user/password-reset/resend", g.Public(http.HandlerFunc(userPasswordResetResendHandler(deps))))
 	mux.Handle("/v1/auth/user/password-reset/confirm", g.Public(http.HandlerFunc(userPasswordResetConfirmHandler(deps))))
 
+	mux.Handle("/v1/me/notification-preferences", Chain(
+		g.AllowMethods(http.MethodGet, http.MethodPatch),
+		func(h http.Handler) http.Handler { return g.User(h) },
+	)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			getMyNotificationPreferencesHandler(deps)(w, r)
+		case http.MethodPatch:
+			updateMyNotificationPreferencesHandler(deps)(w, r)
+		default:
+			writeAPIError(w, http.StatusMethodNotAllowed, "method_not_allowed", "Method not allowed")
+		}
+	})))
+
+	mux.Handle("/v1/me/device-tokens", Chain(
+		g.AllowMethods(http.MethodPost, http.MethodDelete),
+		func(h http.Handler) http.Handler { return g.User(h) },
+	)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodPost:
+			registerMyDeviceTokenHandler(deps)(w, r)
+		case http.MethodDelete:
+			deleteMyDeviceTokenHandler(deps)(w, r)
+		default:
+			writeAPIError(w, http.StatusMethodNotAllowed, "method_not_allowed", "Method not allowed")
+		}
+	})))
+
+	mux.Handle("/v1/me/notifications/dispatch", Chain(
+		g.AllowMethods(http.MethodPost),
+		func(h http.Handler) http.Handler { return g.User(h) },
+	)(http.HandlerFunc(dispatchMyNotificationHandler(deps))))
+
 	mux.Handle("/v1/me/event-joins", Chain(
 		g.AllowMethods(http.MethodGet),
 		func(h http.Handler) http.Handler { return g.User(h) },

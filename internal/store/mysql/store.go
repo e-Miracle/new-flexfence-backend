@@ -8,16 +8,22 @@ import (
 
 	"github.com/flexfence/flexfence-backend/internal/auth"
 	"github.com/flexfence/flexfence-backend/internal/domain"
+	"github.com/flexfence/flexfence-backend/internal/notify"
 	"github.com/flexfence/flexfence-backend/internal/store"
 	"gorm.io/gorm"
 )
 
 type Store struct {
-	db *gorm.DB
+	db       *gorm.DB
+	notifier *notify.Dispatcher
 }
 
 func New(db *gorm.DB) *Store {
 	return &Store{db: db}
+}
+
+func (s *Store) SetNotifier(n *notify.Dispatcher) {
+	s.notifier = n
 }
 
 func (s *Store) CreateEvent(organizationID, createdByID, title, description string, startAt, endAt time.Time) (domain.Event, error) {
