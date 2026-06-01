@@ -15,6 +15,8 @@ func NewRouter(deps RouterDeps) http.Handler {
 	mux := http.NewServeMux()
 
 	mux.Handle("/health", g.Public(http.HandlerFunc(healthHandler)))
+	mux.Handle("/v1/public/legal/privacy", g.Public(http.HandlerFunc(publicPrivacyPolicyHandler)))
+	mux.Handle("/v1/public/legal/terms", g.Public(http.HandlerFunc(publicTermsOfServiceHandler)))
 	mux.Handle("/v1/auth/business/register", g.Public(http.HandlerFunc(businessRegisterHandler(deps))))
 	mux.Handle("/v1/auth/business/login", g.Public(http.HandlerFunc(businessLoginHandler(deps))))
 	mux.Handle("/v1/auth/business/otp/verify", g.Public(http.HandlerFunc(businessOTPVerifyHandler(deps))))
