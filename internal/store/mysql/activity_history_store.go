@@ -57,10 +57,44 @@ func (s *Store) RecordClockIn(userID, eventID, eventTitle, fenceID, fenceName, s
 	if row.FenceName == "" {
 		row.FenceName = "Unknown fence"
 	}
-	if err := s.db.Create(&row).Error; err != nil {
+
+	eventID = row.EventID
+	if eventID != "" {
+		err := s.db.Transaction(func(tx *gorm.DB) error {
+			if err := tx.Create(&row).Error; err != nil {
+				return err
+			}
+			attendance := buildAttendanceFromClockIn(s, eventID, userID, row.FenceID, source, lat, lng, now)
+			return tx.Create(&attendance).Error
+		})
+		if err != nil {
+			return domain.UserActivitySession{}, err
+		}
+	} else if err := s.db.Create(&row).Error; err != nil {
 		return domain.UserActivitySession{}, err
 	}
 	return mapUserActivitySessionModel(row), nil
+}
+
+func buildAttendanceFromClockIn(s *Store, eventID, userID, fenceID, source string, lat, lng float64, markedAt time.Time) AttendanceModel {
+	resolvedFenceID := strings.TrimSpace(fenceID)
+	if resolvedFenceID == "" && (lat != 0 || lng != 0) {
+		fences, _ := s.ListFencesByEvent(eventID)
+		if len(fences) > 0 {
+			resolvedFenceID = domain.ResolveFenceForPoint(fences, lat, lng, markedAt)
+		}
+	}
+	return AttendanceModel{
+		ID:       fmt.Sprintf("att_%d", markedAt.UnixNano()),
+		EventID:  eventID,
+		FenceID:  resolvedFenceID,
+		UserID:   userID,
+		Status:   "present",
+		Source:   source,
+		MarkedAt: markedAt,
+		Lat:      lat,
+		Lng:      lng,
+	}
 }
 
 func (s *Store) RecordClockOut(userID, sessionID, eventID, fenceID string) (domain.UserActivitySession, error) {

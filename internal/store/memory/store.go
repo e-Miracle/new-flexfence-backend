@@ -906,7 +906,10 @@ func (s *Store) ListUserActivityHistory(userID string, filter store.ActivityHist
 
 func (s *Store) RecordClockIn(userID, eventID, eventTitle, fenceID, fenceName, source string, lat, lng float64) (domain.UserActivitySession, error) {
 	now := time.Now().UTC()
-	return domain.UserActivitySession{
+	if strings.TrimSpace(source) == "" {
+		source = "manual"
+	}
+	session := domain.UserActivitySession{
 		ID:         fmt.Sprintf("act_%d", now.UnixNano()),
 		UserID:     userID,
 		EventID:    eventID,
@@ -914,10 +917,38 @@ func (s *Store) RecordClockIn(userID, eventID, eventTitle, fenceID, fenceName, s
 		FenceID:    fenceID,
 		FenceName:  fenceName,
 		ClockInAt:  now,
-		Verified:   source == "geofence" || source == "qr_scan",
+		Verified:   source == "geofence" || source == "qr_scan" || lat != 0 || lng != 0,
 		Source:     source,
 		CreatedAt:  now,
-	}, nil
+	}
+
+	eventID = strings.TrimSpace(eventID)
+	if eventID != "" {
+		s.mu.Lock()
+		defer s.mu.Unlock()
+
+		resolvedFenceID := strings.TrimSpace(fenceID)
+		if resolvedFenceID == "" && (lat != 0 || lng != 0) {
+			fences := s.fences[eventID]
+			if len(fences) > 0 {
+				resolvedFenceID = domain.ResolveFenceForPoint(fences, lat, lng, now)
+			}
+		}
+		s.attendanceSeq++
+		record := domain.AttendanceRecord{
+			ID:       fmt.Sprintf("att_%d", s.attendanceSeq),
+			EventID:  eventID,
+			FenceID:  resolvedFenceID,
+			UserID:   userID,
+			Status:   "present",
+			Source:   source,
+			MarkedAt: now,
+			Lat:      lat,
+			Lng:      lng,
+		}
+		s.attendance[eventID] = append(s.attendance[eventID], record)
+	}
+	return session, nil
 }
 
 func (s *Store) RecordClockOut(userID, sessionID, eventID, fenceID string) (domain.UserActivitySession, error) {
