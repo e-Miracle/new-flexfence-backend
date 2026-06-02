@@ -208,15 +208,10 @@ func recordClockInHandler(dataStore store.Store) http.HandlerFunc {
 				writeStoreErr(w, err)
 				return
 			}
-			joined, err := dataStore.UserHasJoinedEvent(req.EventID, user.UserID)
-			if err != nil {
-				writeAPIError(w, http.StatusInternalServerError, "internal_error", "An internal server error occurred")
-				return
-			}
-			if !joined {
-				writeAPIError(w, http.StatusForbidden, "not_joined_event", "You must join the event before clocking in")
-				return
-			}
+		}
+		if err := validateClockInAccess(dataStore, user.UserID, req.EventID, source); err != nil {
+			writeStoreErr(w, err)
+			return
 		}
 		if (source == "geofence" || source == "qr_scan") && strings.TrimSpace(req.EventID) != "" && strings.TrimSpace(req.FenceID) != "" {
 			fence, ok, err := dataStore.GetFenceByEvent(req.EventID, req.FenceID)

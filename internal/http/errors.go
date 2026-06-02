@@ -64,6 +64,16 @@ func writeStoreErr(w http.ResponseWriter, err error) {
 		writeAPIError(w, http.StatusBadRequest, "clock_in_qr_expired", "Clock-in QR code has expired")
 	case errors.Is(err, store.ErrNotJoinedEvent):
 		writeAPIError(w, http.StatusForbidden, "not_joined_event", "You must join the event before clocking in")
+	case errors.Is(err, store.ErrConsentRequired):
+		writeAPIError(w, http.StatusForbidden, "consent_required", "You must complete the event consent form before clocking in")
+	case errors.Is(err, store.ErrQRScanRequired):
+		writeAPIError(w, http.StatusBadRequest, "qr_scan_required", "Scan the event QR code to clock in")
+	case errors.Is(err, store.ErrInvalidConsent):
+		msg := strings.TrimPrefix(err.Error(), store.ErrInvalidConsent.Error()+": ")
+		if msg == err.Error() {
+			msg = "Consent submission is invalid"
+		}
+		writeAPIError(w, http.StatusBadRequest, "invalid_consent", msg)
 	case errors.Is(err, store.ErrInvalidSchedule):
 		writeAPIError(w, http.StatusBadRequest, "invalid_schedule", err.Error())
 	case errors.Is(err, store.ErrEventLive):

@@ -37,6 +37,15 @@ type ConsentTemplate struct {
 	UpdatedAt        time.Time      `json:"updated_at"`
 }
 
+// UserConsent is an immutable attendee consent snapshot for an event.
+type UserConsent struct {
+	ID              string            `json:"id"`
+	EventID         string            `json:"event_id"`
+	UserID          string            `json:"user_id"`
+	ConsentSnapshot map[string]string `json:"consent_snapshot"`
+	AgreedAt        time.Time         `json:"agreed_at"`
+}
+
 type AttendanceWithUser struct {
 	ID        string    `json:"id"`
 	EventID   string    `json:"event_id"`

@@ -19,12 +19,14 @@ type Store struct {
 	joinSeq       int64
 	attendanceSeq int64
 	consentSeq    int64
+	userConsentSeq int64
 
 	events      map[string]domain.Event
 	fences      map[string][]domain.Fence
 	joins       map[string][]domain.EventJoin
 	attendance  map[string][]domain.AttendanceRecord
 	consent     map[string]domain.ConsentTemplate
+	userConsents map[string]domain.UserConsent // key: eventID+"\x00"+userID
 	orgConsent  map[string]map[string]domain.ConsentFieldRecommendation // orgID -> fieldKey
 	joinByUser  map[string]map[string]bool // event_id -> user_id -> joined
 	presentUser map[string]map[string]bool // event_id -> user_id -> present
@@ -37,6 +39,7 @@ func NewStore() *Store {
 		joins:       make(map[string][]domain.EventJoin),
 		attendance:  make(map[string][]domain.AttendanceRecord),
 		consent:     make(map[string]domain.ConsentTemplate),
+		userConsents: make(map[string]domain.UserConsent),
 		orgConsent:  make(map[string]map[string]domain.ConsentFieldRecommendation),
 		joinByUser:  make(map[string]map[string]bool),
 		presentUser: make(map[string]map[string]bool),
@@ -660,6 +663,68 @@ func (s *Store) SaveConsentTemplate(eventID string, tpl domain.ConsentTemplate) 
 	}
 	s.consent[eventID] = tpl
 	return tpl, nil
+}
+
+func userConsentKey(eventID, userID string) string {
+	return eventID + "\x00" + userID
+}
+
+func (s *Store) EventScanToClockInEnabled(eventID string) (bool, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	event, ok := s.events[eventID]
+	if !ok {
+		return false, store.ErrEventNotFound
+	}
+	return event.ScanToClockInEnabled, nil
+}
+
+func (s *Store) UserHasEventConsent(eventID, userID string) (bool, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	_, ok := s.userConsents[userConsentKey(eventID, userID)]
+	return ok, nil
+}
+
+func (s *Store) GetUserEventConsent(eventID, userID string) (domain.UserConsent, bool, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	consent, ok := s.userConsents[userConsentKey(eventID, userID)]
+	return consent, ok, nil
+}
+
+func (s *Store) SaveUserEventConsent(
+	eventID, userID string,
+	values map[string]string,
+	tpl domain.ConsentTemplate,
+) (domain.UserConsent, error) {
+	if err := domain.ValidateConsentSubmission(tpl.RequiredFields, values); err != nil {
+		return domain.UserConsent{}, fmt.Errorf("%w: %v", store.ErrInvalidConsent, err)
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	key := userConsentKey(eventID, userID)
+	snapshot := make(map[string]string, len(values))
+	for k, v := range values {
+		snapshot[strings.TrimSpace(k)] = strings.TrimSpace(v)
+	}
+	now := time.Now().UTC()
+	if existing, ok := s.userConsents[key]; ok {
+		existing.ConsentSnapshot = snapshot
+		existing.AgreedAt = now
+		s.userConsents[key] = existing
+		return existing, nil
+	}
+	s.userConsentSeq++
+	consent := domain.UserConsent{
+		ID:              fmt.Sprintf("uconsent_%d", s.userConsentSeq),
+		EventID:         eventID,
+		UserID:          userID,
+		ConsentSnapshot: snapshot,
+		AgreedAt:        now,
+	}
+	s.userConsents[key] = consent
+	return consent, nil
 }
 
 func (s *Store) RecordOrganizationConsentFields(organizationID string, fields []domain.ConsentField) error {

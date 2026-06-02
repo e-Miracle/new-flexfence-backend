@@ -111,3 +111,32 @@ func SlugConsentFieldKey(label string) string {
 	}
 	return "custom_" + slug
 }
+
+// ValidateConsentSubmission checks attendee-submitted values against an event template.
+func ValidateConsentSubmission(fields []ConsentField, values map[string]string) error {
+	if len(fields) == 0 {
+		return nil
+	}
+	for _, f := range fields {
+		raw, ok := values[f.Key]
+		val := strings.TrimSpace(raw)
+		if f.Required && (!ok || val == "") {
+			return fmt.Errorf("field %q is required", f.Label)
+		}
+		if val == "" {
+			continue
+		}
+		switch f.ValueType {
+		case ConsentValueEmail:
+			if !strings.Contains(val, "@") {
+				return fmt.Errorf("field %q must be a valid email", f.Label)
+			}
+		case ConsentValueBoolean:
+			lower := strings.ToLower(val)
+			if lower != "true" && lower != "false" && lower != "1" && lower != "0" {
+				return fmt.Errorf("field %q must be yes or no", f.Label)
+			}
+		}
+	}
+	return nil
+}

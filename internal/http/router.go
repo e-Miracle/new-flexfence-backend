@@ -79,6 +79,10 @@ func NewRouter(deps RouterDeps) http.Handler {
 		func(h http.Handler) http.Handler { return g.User(h) },
 	)(http.HandlerFunc(deleteMyEventJoinHandler(deps.DataStore))))
 
+	mux.Handle("/v1/me/events/", Chain(
+		func(h http.Handler) http.Handler { return g.User(h) },
+	)(http.HandlerFunc(myEventConsentHandler(deps.DataStore))))
+
 	mux.Handle("/v1/me", Chain(
 		g.AllowMethods(http.MethodDelete, http.MethodPatch),
 		func(h http.Handler) http.Handler { return g.User(h) },

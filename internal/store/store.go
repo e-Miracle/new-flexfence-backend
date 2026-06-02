@@ -33,6 +33,9 @@ var (
 	ErrClockInQRDisabled   = errors.New("clock_in_qr_disabled")
 	ErrClockInQRExpired    = errors.New("clock_in_qr_expired")
 	ErrNotJoinedEvent      = errors.New("not_joined_event")
+	ErrConsentRequired     = errors.New("consent_required")
+	ErrQRScanRequired      = errors.New("qr_scan_required")
+	ErrInvalidConsent      = errors.New("invalid_consent")
 )
 
 type UserEventJoinFilter struct {
@@ -88,6 +91,10 @@ type Store interface {
 	GetFenceAnalytics(eventID, fenceID string) (domain.FenceAnalytics, error)
 	GetConsentTemplate(eventID string) (domain.ConsentTemplate, bool, error)
 	SaveConsentTemplate(eventID string, tpl domain.ConsentTemplate) (domain.ConsentTemplate, error)
+	EventScanToClockInEnabled(eventID string) (bool, error)
+	UserHasEventConsent(eventID, userID string) (bool, error)
+	GetUserEventConsent(eventID, userID string) (domain.UserConsent, bool, error)
+	SaveUserEventConsent(eventID, userID string, values map[string]string, tpl domain.ConsentTemplate) (domain.UserConsent, error)
 	RecordOrganizationConsentFields(organizationID string, fields []domain.ConsentField) error
 	ListConsentFieldRecommendations(organizationID string, limit int) ([]domain.ConsentFieldRecommendation, error)
 	JoinByQR(eventID, userID, qrToken string) (domain.EventJoin, error)
