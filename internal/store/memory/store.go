@@ -73,6 +73,80 @@ func (s *Store) CreateEvent(organizationID, createdByID, title, description stri
 	return event, nil
 }
 
+func (s *Store) UpdateEvent(
+	eventID, organizationID string,
+	title, description string,
+	startAt, endAt time.Time,
+) (domain.Event, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	event, ok := s.events[eventID]
+	if !ok || event.OrganizationID != organizationID {
+		return domain.Event{}, store.ErrEventNotFound
+	}
+	title = strings.TrimSpace(title)
+	if title == "" {
+		return domain.Event{}, fmt.Errorf("%w: title is required", store.ErrInvalidSchedule)
+	}
+	if err := domain.ValidateEventSchedule(startAt, endAt); err != nil {
+		return domain.Event{}, fmt.Errorf("%w: %v", store.ErrInvalidSchedule, err)
+	}
+	startAt = startAt.UTC()
+	endAt = endAt.UTC()
+	now := time.Now().UTC()
+	if domain.EventIsLive(event, now) {
+		if !startAt.Equal(event.StartAt.UTC()) || !endAt.Equal(event.EndAt.UTC()) {
+			return domain.Event{}, store.ErrEventLive
+		}
+	}
+	updated := event
+	updated.Title = title
+	updated.Description = strings.TrimSpace(description)
+	updated.StartAt = startAt
+	updated.EndAt = endAt
+	for _, fence := range s.fences[eventID] {
+		fs := fence.StartAt
+		fe := fence.EndAt
+		if _, _, err := domain.ResolveFenceSchedule(updated, &fs, &fe); err != nil {
+			return domain.Event{}, fmt.Errorf(
+				"%w: fence %q does not fit the updated schedule (%v)",
+				store.ErrInvalidSchedule,
+				fence.Name,
+				err,
+			)
+		}
+	}
+	s.events[eventID] = updated
+	return updated, nil
+}
+
+func (s *Store) DeleteEvent(eventID, organizationID string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	event, ok := s.events[eventID]
+	if !ok || event.OrganizationID != organizationID {
+		return store.ErrEventNotFound
+	}
+	if domain.EventIsLive(event, time.Now().UTC()) {
+		return store.ErrEventLive
+	}
+	delete(s.events, eventID)
+	delete(s.fences, eventID)
+	delete(s.joins, eventID)
+	delete(s.attendance, eventID)
+	delete(s.consent, eventID)
+	for key := range s.userConsents {
+		if strings.HasPrefix(key, eventID+"\x00") {
+			delete(s.userConsents, key)
+		}
+	}
+	delete(s.joinByUser, eventID)
+	delete(s.presentUser, eventID)
+	return nil
+}
+
 func (s *Store) EnsureEventQRToken(eventID string) (string, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()

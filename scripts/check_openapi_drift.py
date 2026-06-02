@@ -35,6 +35,8 @@ def implemented_endpoints() -> set[tuple[str, str]]:
         ("GET", "/v1/events"),
         ("POST", "/v1/events"),
         ("GET", "/v1/events/{eventId}"),
+        ("PATCH", "/v1/events/{eventId}"),
+        ("DELETE", "/v1/events/{eventId}"),
         ("POST", "/v1/events/{eventId}/fences"),
         ("POST", "/v1/events/{eventId}/join-by-qr"),
         ("POST", "/v1/events/{eventId}/attendance/mark-present"),

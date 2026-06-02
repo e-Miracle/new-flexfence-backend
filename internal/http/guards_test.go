@@ -35,6 +35,8 @@ func TestClassifyEventRoute(t *testing.T) {
 		want   eventRouteKind
 	}{
 		{http.MethodGet, "/v1/events/evt_1", eventRouteGet},
+		{http.MethodPatch, "/v1/events/evt_1", eventRouteUpdate},
+		{http.MethodDelete, "/v1/events/evt_1", eventRouteDelete},
 		{http.MethodPost, "/v1/events/evt_1/fences", eventRouteFence},
 		{http.MethodPost, "/v1/events/evt_1/join-by-qr", eventRouteJoinQR},
 		{http.MethodPost, "/v1/events/evt_1/attendance/mark-present", eventRouteMarkPresent},

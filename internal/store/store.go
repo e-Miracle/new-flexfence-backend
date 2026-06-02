@@ -64,6 +64,8 @@ type ActivityHistoryFilter struct {
 
 type Store interface {
 	CreateEvent(organizationID, createdByID, title, description string, startAt, endAt time.Time) (domain.Event, error)
+	UpdateEvent(eventID, organizationID string, title, description string, startAt, endAt time.Time) (domain.Event, error)
+	DeleteEvent(eventID, organizationID string) error
 	ListEvents() ([]domain.Event, error)
 	ListEventsByOrganization(organizationID string) ([]domain.Event, error)
 	GetEvent(eventID string) (domain.Event, bool, error)

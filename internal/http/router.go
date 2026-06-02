@@ -153,6 +153,18 @@ func NewRouter(deps RouterDeps) http.Handler {
 				func(h http.Handler) http.Handler { return g.BusinessRead(h) },
 				g.RequireEventTenant(deps.DataStore),
 			)(http.HandlerFunc(dashboardEventHandler(deps.DataStore))).ServeHTTP(w, r)
+		case eventRouteUpdate:
+			Chain(
+				g.AllowMethods(http.MethodPatch),
+				func(h http.Handler) http.Handler { return g.BusinessWrite(h) },
+				g.RequireEventTenant(deps.DataStore),
+			)(http.HandlerFunc(updateEventHandler(deps.DataStore))).ServeHTTP(w, r)
+		case eventRouteDelete:
+			Chain(
+				g.AllowMethods(http.MethodDelete),
+				func(h http.Handler) http.Handler { return g.BusinessWrite(h) },
+				g.RequireEventTenant(deps.DataStore),
+			)(http.HandlerFunc(deleteEventHandler(deps.DataStore))).ServeHTTP(w, r)
 		case eventRouteFence:
 			Chain(
 				g.AllowMethods(http.MethodPost),
@@ -257,6 +269,8 @@ type eventRouteKind int
 const (
 	eventRouteUnknown eventRouteKind = iota
 	eventRouteGet
+	eventRouteUpdate
+	eventRouteDelete
 	eventRouteFence
 	eventRouteFencesList
 	eventRouteFenceDelete
@@ -280,8 +294,15 @@ func classifyEventRoute(r *http.Request) eventRouteKind {
 	path = strings.Trim(path, "/")
 	parts := strings.Split(path, "/")
 
-	if len(parts) == 1 && r.Method == http.MethodGet {
-		return eventRouteGet
+	if len(parts) == 1 {
+		switch r.Method {
+		case http.MethodGet:
+			return eventRouteGet
+		case http.MethodPatch:
+			return eventRouteUpdate
+		case http.MethodDelete:
+			return eventRouteDelete
+		}
 	}
 	if len(parts) == 2 && parts[1] == "fences" {
 		if r.Method == http.MethodPost {

@@ -449,6 +449,48 @@ paths:
                 $ref: "#/components/schemas/Event"
         default:
           $ref: "#/components/responses/APIError"
+    patch:
+      tags: [Events]
+      summary: Update event
+      operationId: updateEvent
+      security:
+        - BusinessBearer: []
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateEventRequest"
+      responses:
+        "200":
+          description: Updated event
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+        default:
+          $ref: "#/components/responses/APIError"
+    delete:
+      tags: [Events]
+      summary: Delete event
+      operationId: deleteEvent
+      security:
+        - BusinessBearer: []
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+      responses:
+        "204":
+          description: Event deleted
+        "409":
+          description: Event is live; deletion is blocked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/APIError"
+        default:
+          $ref: "#/components/responses/APIError"
   /v1/events/{eventId}/fences:
     get:
       tags: [Events]

@@ -77,7 +77,7 @@ func writeStoreErr(w http.ResponseWriter, err error) {
 	case errors.Is(err, store.ErrInvalidSchedule):
 		writeAPIError(w, http.StatusBadRequest, "invalid_schedule", err.Error())
 	case errors.Is(err, store.ErrEventLive):
-		writeAPIError(w, http.StatusConflict, "event_live", "Fences cannot be deleted while the event is live")
+		writeAPIError(w, http.StatusConflict, "event_live", "This action is not allowed while the event is live")
 	case errors.Is(err, store.ErrFenceNotFound):
 		writeAPIError(w, http.StatusNotFound, "fence_not_found", "Fence was not found")
 	default:
