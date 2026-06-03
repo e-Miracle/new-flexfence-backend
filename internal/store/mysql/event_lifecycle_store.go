@@ -14,6 +14,7 @@ func (s *Store) UpdateEvent(
 	eventID, organizationID string,
 	title, description string,
 	startAt, endAt time.Time,
+	geofenceGpsTolerance string,
 ) (domain.Event, error) {
 	event, found, err := s.GetEventForOrganization(eventID, organizationID)
 	if err != nil {
@@ -42,6 +43,11 @@ func (s *Store) UpdateEvent(
 	updatedEvent.Description = strings.TrimSpace(description)
 	updatedEvent.StartAt = startAt
 	updatedEvent.EndAt = endAt
+	tolerance := domain.NormalizeGeofenceGpsTolerance(geofenceGpsTolerance)
+	if strings.TrimSpace(geofenceGpsTolerance) == "" {
+		tolerance = domain.NormalizeGeofenceGpsTolerance(event.GeofenceGpsTolerance)
+	}
+	updatedEvent.GeofenceGpsTolerance = tolerance
 	fences, err := s.ListFencesByEvent(eventID)
 	if err != nil {
 		return domain.Event{}, err
@@ -61,10 +67,11 @@ func (s *Store) UpdateEvent(
 	res := s.db.Model(&EventModel{}).
 		Where("id = ? AND organization_id = ?", eventID, organizationID).
 		Updates(map[string]any{
-			"title":       title,
-			"description": strings.TrimSpace(description),
-			"start_at":    startAt,
-			"end_at":      endAt,
+			"title":                  title,
+			"description":            strings.TrimSpace(description),
+			"start_at":               startAt,
+			"end_at":                 endAt,
+			"geofence_gps_tolerance": tolerance,
 		})
 	if res.Error != nil {
 		return domain.Event{}, res.Error

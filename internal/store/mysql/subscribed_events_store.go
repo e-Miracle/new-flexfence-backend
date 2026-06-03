@@ -53,6 +53,7 @@ func (s *Store) ListSubscribedGeofenceEvents(userID string, now time.Time) ([]do
 			JoinSource:           join.JoinSource,
 			JoinedAt:             join.JoinedAt,
 			ScanToClockInEnabled: scanToClockInEnabled(s, join.EventID),
+			GeofenceGpsTolerance: geofenceGpsTolerance(s, join.EventID),
 			Fences:               circleFences,
 		})
 	}
@@ -65,4 +66,12 @@ func scanToClockInEnabled(s *Store, eventID string) bool {
 		return false
 	}
 	return event.ScanToClockInEnabled
+}
+
+func geofenceGpsTolerance(s *Store, eventID string) string {
+	var event EventModel
+	if err := s.db.Select("geofence_gps_tolerance").Where("id = ?", eventID).First(&event).Error; err != nil {
+		return domain.GeofenceGpsToleranceDefault
+	}
+	return domain.NormalizeGeofenceGpsTolerance(event.GeofenceGpsTolerance)
 }

@@ -16,7 +16,7 @@ func writeLocationValidationErr(w http.ResponseWriter, err error) {
 			w,
 			http.StatusBadRequest,
 			"location_accuracy_poor",
-			"GPS accuracy must be within 20 meters",
+			"GPS accuracy is too low for this event. Move to an open area and try again.",
 		)
 	case errors.Is(err, domain.ErrInvalidCoordinates):
 		writeAPIError(w, http.StatusBadRequest, "coordinates_required", "lat and lng are required")
@@ -43,4 +43,13 @@ func validateStrictLocationReport(lat, lng, accuracyM float64, mockLocation bool
 		AccuracyM:    accuracyM,
 		MockLocation: mockLocation,
 	})
+}
+
+func validateStrictLocationReportForTolerance(lat, lng, accuracyM float64, mockLocation bool, maxAccuracyM float64) error {
+	return domain.ValidateStrictLocationReportForTolerance(domain.LocationReport{
+		Lat:          lat,
+		Lng:          lng,
+		AccuracyM:    accuracyM,
+		MockLocation: mockLocation,
+	}, maxAccuracyM)
 }

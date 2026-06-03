@@ -17,6 +17,7 @@ type Event struct {
 	ClockInQRToken           string     `json:"-"`
 	ClockInQRIssuedAt        *time.Time `json:"-"`
 	ClockInQRRotationMinutes int        `json:"-"`
+	GeofenceGpsTolerance     string     `json:"geofence_gps_tolerance"`
 }
 
 // EventShare is returned to organizers for invite links and QR encoding.
@@ -115,6 +116,7 @@ type SubscribedGeofenceEvent struct {
 	JoinSource            string    `json:"join_source"`
 	JoinedAt              time.Time `json:"joined_at"`
 	ScanToClockInEnabled  bool      `json:"scan_to_clock_in_enabled"`
+	GeofenceGpsTolerance  string    `json:"geofence_gps_tolerance"`
 	Fences                []Fence   `json:"fences"`
 }
 

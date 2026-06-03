@@ -190,7 +190,20 @@ func recordClockInHandler(dataStore store.Store) http.HandlerFunc {
 			writeInvalidJSON(w, err)
 			return
 		}
-		if err := validateStrictLocationReport(req.Lat, req.Lng, req.AccuracyM, req.MockLocation); err != nil {
+		toleranceMaxAccuracyM := domain.GeofenceGpsToleranceMaxAccuracyM(domain.GeofenceGpsToleranceDefault)
+		toleranceFenceBufferM := domain.GeofenceGpsToleranceFenceBufferM(domain.GeofenceGpsToleranceDefault)
+		if strings.TrimSpace(req.EventID) != "" {
+			event, ok, err := dataStore.GetEvent(req.EventID)
+			if err != nil {
+				writeAPIError(w, http.StatusInternalServerError, "internal_error", "An internal server error occurred")
+				return
+			}
+			if ok {
+				toleranceMaxAccuracyM = domain.GeofenceGpsToleranceMaxAccuracyM(event.GeofenceGpsTolerance)
+				toleranceFenceBufferM = domain.GeofenceGpsToleranceFenceBufferM(event.GeofenceGpsTolerance)
+			}
+		}
+		if err := validateStrictLocationReportForTolerance(req.Lat, req.Lng, req.AccuracyM, req.MockLocation, toleranceMaxAccuracyM); err != nil {
 			writeLocationValidationErr(w, err)
 			return
 		}
@@ -223,7 +236,7 @@ func recordClockInHandler(dataStore store.Store) http.HandlerFunc {
 				writeAPIError(w, http.StatusNotFound, "fence_not_found", "Fence was not found")
 				return
 			}
-			if err := domain.ValidateGeofenceClockIn(fence, req.Lat, req.Lng); err != nil {
+			if err := domain.ValidateGeofenceClockIn(fence, req.Lat, req.Lng, req.AccuracyM, toleranceFenceBufferM); err != nil {
 				writeLocationValidationErr(w, err)
 				return
 			}

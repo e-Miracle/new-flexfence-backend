@@ -42,9 +42,33 @@ func ValidateStrictLocationReport(report LocationReport) error {
 	return nil
 }
 
-func ValidateGeofenceClockIn(fence Fence, lat, lng float64) error {
-	if !PointInFence(fence, lat, lng) {
+func ValidateGeofenceClockIn(fence Fence, lat, lng, accuracyM, maxBufferM float64) error {
+	if !PointInFenceWithAccuracy(fence, lat, lng, accuracyM, maxBufferM) {
 		return ErrOutsideFence
+	}
+	return nil
+}
+
+// ValidateStrictLocationReportForTolerance requires accuracy within the event tolerance preset.
+func ValidateStrictLocationReportForTolerance(report LocationReport, maxAccuracyM float64) error {
+	if err := ValidateLocationReportForTolerance(report, maxAccuracyM); err != nil {
+		return err
+	}
+	if report.AccuracyM <= 0 || report.AccuracyM > maxAccuracyM {
+		return ErrLocationAccuracyPoor
+	}
+	return nil
+}
+
+func ValidateLocationReportForTolerance(report LocationReport, maxAccuracyM float64) error {
+	if report.MockLocation {
+		return ErrMockLocation
+	}
+	if report.Lat == 0 && report.Lng == 0 {
+		return ErrInvalidCoordinates
+	}
+	if report.AccuracyM > 0 && report.AccuracyM > maxAccuracyM {
+		return ErrLocationAccuracyPoor
 	}
 	return nil
 }

@@ -59,7 +59,7 @@ func main() {
 	now := time.Now().UTC()
 	eventStart := now.Add(24 * time.Hour).Truncate(time.Hour)
 	eventEnd := eventStart.Add(8 * time.Hour)
-	event, err := data.CreateEvent(org.ID, owner.ID, eventTitle, eventDesc, eventStart, eventEnd)
+	event, err := data.CreateEvent(org.ID, owner.ID, eventTitle, eventDesc, eventStart, eventEnd, domain.GeofenceGpsToleranceDefault)
 	if err != nil {
 		log.Fatalf("create event failed: %v", err)
 	}

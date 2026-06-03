@@ -1027,6 +1027,10 @@ components:
         joined_at:
           type: string
           format: date-time
+        geofence_gps_tolerance:
+          type: string
+          enum: [none, strict, default, forgiving]
+          description: Organizer-selected GPS buffer for mobile geofence checks (none = exact point inside fence; otherwise about 10m, 20m, or 35m).
         fences:
           type: array
           items:
@@ -1154,6 +1158,10 @@ components:
         end_at:
           type: string
           format: date-time
+        geofence_gps_tolerance:
+          type: string
+          enum: [none, strict, default, forgiving]
+          description: GPS tolerance preset for clock-in and mobile geofence checks.
 
     ListEventsResponse:
       type: object
@@ -1189,6 +1197,9 @@ components:
         created_at:
           type: string
           format: date-time
+        geofence_gps_tolerance:
+          type: string
+          enum: [none, strict, default, forgiving]
 
     CreateFenceRequest:
       type: object

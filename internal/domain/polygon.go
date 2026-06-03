@@ -3,6 +3,7 @@ package domain
 import (
 	"encoding/json"
 	"errors"
+	"math"
 	"strings"
 )
 
@@ -99,4 +100,57 @@ func PointInPolygonFence(f Fence, lat, lng float64) bool {
 		return false
 	}
 	return PointInPolygonRing(ring, lat, lng)
+}
+
+// PointInPolygonFenceWithAccuracy allows fixes near the polygon boundary within bufferM.
+func PointInPolygonFenceWithAccuracy(f Fence, lat, lng, bufferM float64) bool {
+	if f.ShapeType != "polygon" || strings.TrimSpace(f.PolygonJSON) == "" {
+		return false
+	}
+	if lat == 0 && lng == 0 {
+		return false
+	}
+	ring, err := ParsePolygonRing(f.PolygonJSON)
+	if err != nil {
+		return false
+	}
+	if PointInPolygonRing(ring, lat, lng) {
+		return true
+	}
+	return DistanceToPolygonRingM(ring, lat, lng) <= bufferM
+}
+
+// DistanceToPolygonRingM returns the shortest distance in meters from a point to the polygon boundary.
+func DistanceToPolygonRingM(ring [][]float64, lat, lng float64) float64 {
+	if len(ring) < 2 {
+		return math.MaxFloat64
+	}
+	minDist := math.MaxFloat64
+	for i := 0; i < len(ring); i++ {
+		j := (i + 1) % len(ring)
+		d := DistanceToSegmentM(ring[i][0], ring[i][1], ring[j][0], ring[j][1], lat, lng)
+		if d < minDist {
+			minDist = d
+		}
+	}
+	return minDist
+}
+
+// DistanceToSegmentM approximates the shortest distance from a point to a segment in meters.
+func DistanceToSegmentM(latA, lngA, latB, lngB, latP, lngP float64) float64 {
+	dLat := latB - latA
+	dLng := lngB - lngA
+	if dLat == 0 && dLng == 0 {
+		return DistanceMeters(latA, lngA, latP, lngP)
+	}
+	t := ((latP-latA)*dLat + (lngP-lngA)*dLng) / (dLat*dLat + dLng*dLng)
+	if t < 0 {
+		return DistanceMeters(latA, lngA, latP, lngP)
+	}
+	if t > 1 {
+		return DistanceMeters(latB, lngB, latP, lngP)
+	}
+	closestLat := latA + t*dLat
+	closestLng := lngA + t*dLng
+	return DistanceMeters(closestLat, closestLng, latP, lngP)
 }

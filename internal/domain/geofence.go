@@ -54,6 +54,45 @@ func PointInFence(f Fence, lat, lng float64) bool {
 	}
 }
 
+// PointInFenceWithAccuracy treats a fix as inside when the reported point is within the
+// fence or its GPS accuracy radius overlaps the boundary (standard mobile geofencing).
+func PointInFenceWithAccuracy(f Fence, lat, lng, accuracyM, maxBufferM float64) bool {
+	if PointInFence(f, lat, lng) {
+		return true
+	}
+	bufferM := accuracyBufferM(accuracyM, maxBufferM)
+	if bufferM <= 0 {
+		return false
+	}
+	switch f.ShapeType {
+	case "polygon":
+		return PointInPolygonFenceWithAccuracy(f, lat, lng, bufferM)
+	default:
+		return PointInCircleFenceWithAccuracy(f, lat, lng, bufferM)
+	}
+}
+
+func accuracyBufferM(accuracyM, maxBufferM float64) float64 {
+	if accuracyM <= 0 || maxBufferM <= 0 {
+		return 0
+	}
+	if accuracyM > maxBufferM {
+		return maxBufferM
+	}
+	return accuracyM
+}
+
+// PointInCircleFenceWithAccuracy allows a GPS accuracy buffer around circular fences.
+func PointInCircleFenceWithAccuracy(f Fence, lat, lng, bufferM float64) bool {
+	if f.ShapeType != "circle" || f.RadiusM <= 0 {
+		return false
+	}
+	if lat == 0 && lng == 0 {
+		return false
+	}
+	return DistanceMeters(f.CenterLat, f.CenterLng, lat, lng) <= f.RadiusM+bufferM
+}
+
 // ResolveFenceForPoint picks the first fence containing the point during markedAt.
 func ResolveFenceForPoint(fences []Fence, lat, lng float64, markedAt time.Time) string {
 	for _, f := range fences {

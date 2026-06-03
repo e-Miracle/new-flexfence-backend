@@ -400,7 +400,15 @@ func dashboardEventsHandler(dataStore store.Store) http.HandlerFunc {
 				writeAPIError(w, http.StatusBadRequest, "invalid_schedule", err.Error())
 				return
 			}
-			event, err := dataStore.CreateEvent(biz.OrganizationID, biz.UserID, req.Title, req.Description, startAt, endAt)
+			event, err := dataStore.CreateEvent(
+				biz.OrganizationID,
+				biz.UserID,
+				req.Title,
+				req.Description,
+				startAt,
+				endAt,
+				req.GeofenceGpsTolerance,
+			)
 			if err != nil {
 				writeAPIError(w, http.StatusInternalServerError, "internal_error", "An internal server error occurred")
 				return

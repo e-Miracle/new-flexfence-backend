@@ -26,22 +26,23 @@ func (s *Store) SetNotifier(n *notify.Dispatcher) {
 	s.notifier = n
 }
 
-func (s *Store) CreateEvent(organizationID, createdByID, title, description string, startAt, endAt time.Time) (domain.Event, error) {
+func (s *Store) CreateEvent(organizationID, createdByID, title, description string, startAt, endAt time.Time, geofenceGpsTolerance string) (domain.Event, error) {
 	qrToken, err := auth.GenerateQRToken()
 	if err != nil {
 		return domain.Event{}, err
 	}
 	event := EventModel{
-		ID:             fmt.Sprintf("evt_%d", time.Now().UTC().UnixNano()),
-		OrganizationID: organizationID,
-		CreatedByID:    createdByID,
-		Title:          title,
-		Description:    description,
-		StartAt:        startAt.UTC(),
-		EndAt:          endAt.UTC(),
-		Status:         "active",
-		QRToken:        qrToken,
-		CreatedAt:      time.Now().UTC(),
+		ID:                   fmt.Sprintf("evt_%d", time.Now().UTC().UnixNano()),
+		OrganizationID:       organizationID,
+		CreatedByID:          createdByID,
+		Title:                title,
+		Description:          description,
+		StartAt:              startAt.UTC(),
+		EndAt:                endAt.UTC(),
+		Status:               "active",
+		QRToken:              qrToken,
+		GeofenceGpsTolerance: domain.NormalizeGeofenceGpsTolerance(geofenceGpsTolerance),
+		CreatedAt:            time.Now().UTC(),
 	}
 	if err := s.db.Create(&event).Error; err != nil {
 		return domain.Event{}, err
@@ -256,6 +257,7 @@ func mapEventModel(m EventModel) domain.Event {
 		ClockInQRToken:           m.ClockInQRToken,
 		ClockInQRIssuedAt:        m.ClockInQRIssuedAt,
 		ClockInQRRotationMinutes: m.ClockInQRRotationMinutes,
+		GeofenceGpsTolerance:     domain.NormalizeGeofenceGpsTolerance(m.GeofenceGpsTolerance),
 	}
 }
 

@@ -16,6 +16,7 @@ type EventModel struct {
 	ClockInQRToken           string     `gorm:"column:clock_in_qr_token;size:64;index"`
 	ClockInQRIssuedAt        *time.Time `gorm:"column:clock_in_qr_issued_at"`
 	ClockInQRRotationMinutes int        `gorm:"column:clock_in_qr_rotation_minutes;not null;default:0"`
+	GeofenceGpsTolerance     string     `gorm:"column:geofence_gps_tolerance;size:16;not null;default:default"`
 	GoLiveProcessedAt        *time.Time `gorm:"column:go_live_processed_at;index"`
 	CreatedAt                time.Time  `gorm:"column:created_at;not null"`
 }

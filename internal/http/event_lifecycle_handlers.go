@@ -39,7 +39,15 @@ func updateEventHandler(dataStore store.Store) http.HandlerFunc {
 			writeAPIError(w, http.StatusBadRequest, "invalid_schedule", err.Error())
 			return
 		}
-		event, err := dataStore.UpdateEvent(eventID, biz.OrganizationID, req.Title, req.Description, startAt, endAt)
+		event, err := dataStore.UpdateEvent(
+			eventID,
+			biz.OrganizationID,
+			req.Title,
+			req.Description,
+			startAt,
+			endAt,
+			req.GeofenceGpsTolerance,
+		)
 		if err != nil {
 			writeStoreErr(w, err)
 			return

@@ -46,7 +46,7 @@ func NewStore() *Store {
 	}
 }
 
-func (s *Store) CreateEvent(organizationID, createdByID, title, description string, startAt, endAt time.Time) (domain.Event, error) {
+func (s *Store) CreateEvent(organizationID, createdByID, title, description string, startAt, endAt time.Time, geofenceGpsTolerance string) (domain.Event, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -58,16 +58,17 @@ func (s *Store) CreateEvent(organizationID, createdByID, title, description stri
 		return domain.Event{}, err
 	}
 	event := domain.Event{
-		ID:             id,
-		OrganizationID: organizationID,
-		CreatedByID:    createdByID,
-		Title:          title,
-		Description:    description,
-		StartAt:        startAt.UTC(),
-		EndAt:          endAt.UTC(),
-		Status:         "active",
-		CreatedAt:      now,
-		QRToken:        qrToken,
+		ID:                   id,
+		OrganizationID:       organizationID,
+		CreatedByID:          createdByID,
+		Title:                title,
+		Description:          description,
+		StartAt:              startAt.UTC(),
+		EndAt:                endAt.UTC(),
+		Status:               "active",
+		CreatedAt:            now,
+		QRToken:              qrToken,
+		GeofenceGpsTolerance: domain.NormalizeGeofenceGpsTolerance(geofenceGpsTolerance),
 	}
 	s.events[id] = event
 	return event, nil
@@ -77,6 +78,7 @@ func (s *Store) UpdateEvent(
 	eventID, organizationID string,
 	title, description string,
 	startAt, endAt time.Time,
+	geofenceGpsTolerance string,
 ) (domain.Event, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -105,6 +107,9 @@ func (s *Store) UpdateEvent(
 	updated.Description = strings.TrimSpace(description)
 	updated.StartAt = startAt
 	updated.EndAt = endAt
+	if strings.TrimSpace(geofenceGpsTolerance) != "" {
+		updated.GeofenceGpsTolerance = domain.NormalizeGeofenceGpsTolerance(geofenceGpsTolerance)
+	}
 	for _, fence := range s.fences[eventID] {
 		fs := fence.StartAt
 		fe := fence.EndAt
@@ -883,6 +888,10 @@ func (s *Store) ListSubscribedGeofenceEvents(userID string, now time.Time) ([]do
 		}
 		event, ok := s.events[join.EventID]
 		scanEnabled := ok && event.ScanToClockInEnabled
+		tolerance := domain.GeofenceGpsToleranceDefault
+		if ok {
+			tolerance = domain.NormalizeGeofenceGpsTolerance(event.GeofenceGpsTolerance)
+		}
 		out = append(out, domain.SubscribedGeofenceEvent{
 			ID:                   join.ID,
 			EventID:              join.EventID,
@@ -894,6 +903,7 @@ func (s *Store) ListSubscribedGeofenceEvents(userID string, now time.Time) ([]do
 			JoinSource:           join.JoinSource,
 			JoinedAt:             join.JoinedAt,
 			ScanToClockInEnabled: scanEnabled,
+			GeofenceGpsTolerance: tolerance,
 			Fences:               circleFences,
 		})
 	}

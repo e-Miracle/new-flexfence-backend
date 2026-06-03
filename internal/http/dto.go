@@ -7,10 +7,11 @@ type HealthResponse struct {
 }
 
 type CreateEventRequest struct {
-	Title       string `json:"title"`
-	Description string `json:"description"`
-	StartAt     string `json:"start_at"`
-	EndAt       string `json:"end_at"`
+	Title                string `json:"title"`
+	Description          string `json:"description"`
+	StartAt              string `json:"start_at"`
+	EndAt                string `json:"end_at"`
+	GeofenceGpsTolerance string `json:"geofence_gps_tolerance,omitempty"`
 }
 
 type BusinessLoginRequest struct {
